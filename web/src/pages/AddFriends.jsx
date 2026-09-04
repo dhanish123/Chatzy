@@ -28,15 +28,25 @@ export const AddFriends = () => {
     loadRequests();
   }, []);
 
-  const handleSearch = async () => {
-    if (searchQuery.length < 2) return;
-    try {
-      const response = await userAPI.searchUsers(searchQuery);
-      setSearchResults(response.data);
-    } catch (error) {
-      console.error('Error searching:', error);
-    }
-  };
+  // Real-time search as user types
+  useEffect(() => {
+    const handleSearch = async () => {
+      if (searchQuery.length < 2) {
+        setSearchResults([]);
+        return;
+      }
+      try {
+        const response = await userAPI.searchUsers(searchQuery);
+        setSearchResults(response.data);
+      } catch (error) {
+        console.error('Error searching:', error);
+      }
+    };
+
+    // Debounce search to avoid too many API calls
+    const timer = setTimeout(handleSearch, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const handleSendRequest = async (userId) => {
     try {
@@ -103,14 +113,12 @@ export const AddFriends = () => {
 
           {tab === 'search' && (
             <div>
-              <div className="flex gap-2 mb-4">
+              <div className="mb-4">
                 <Input
                   placeholder="Search users..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                 />
-                <Button onClick={handleSearch}>Search</Button>
               </div>
 
               <div className="space-y-3">
