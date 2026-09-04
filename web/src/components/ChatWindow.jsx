@@ -20,6 +20,16 @@ export const ChatWindow = () => {
 
   const isGroup = !!selectedGroup;
   const conversationId = isGroup ? selectedGroup._id : selectedConversation?._id;
+  
+  // Safety check - if no conversation/group selected, return empty state
+  if (!conversationId) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-gray-50">
+        <p className="text-gray-500">Select a conversation to start messaging</p>
+      </div>
+    );
+  }
+
   const otherUser = !isGroup ? selectedConversation?.participants?.find(p => p.userId._id !== user?._id)?.userId : null;
 
   useEffect(() => {

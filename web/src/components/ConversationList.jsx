@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useChatStore } from '../stores/chatStore.js';
 import { useFriendStore } from '../stores/friendStore.js';
 import { Avatar } from './Avatar.jsx';
@@ -5,7 +6,14 @@ import { EmptyState } from './EmptyState.jsx';
 import { LuMessageSquare } from 'react-icons/lu';
 
 export const ConversationList = ({ searchQuery = '' }) => {
-  const { conversations, setSelectedConversation } = useChatStore();
+  const { conversations, setSelectedConversation, selectedConversation } = useChatStore();
+
+  // Auto-select first conversation on load if none selected
+  useEffect(() => {
+    if (!selectedConversation && conversations.length > 0) {
+      setSelectedConversation(conversations[0]);
+    }
+  }, [conversations, selectedConversation, setSelectedConversation]);
 
   if (conversations.length === 0) {
     return <EmptyState title="No conversations" description="Start a conversation with a friend" icon={LuMessageSquare} />;
