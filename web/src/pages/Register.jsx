@@ -26,10 +26,6 @@ export const Register = () => {
       await authAPI.register(formData);
       setSuccessMessage('Account created successfully! Please login with your credentials.');
       setFormData({ username: '', email: '', password: '', confirmPassword: '' });
-      
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
     } catch (error) {
       if (error.response?.status === 409) {
         setErrors({ form: 'User already exists' });
