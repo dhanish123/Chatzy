@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '../components/Button.jsx';
 import { Input } from '../components/Input.jsx';
-import { useAuthStore } from '../stores/authStore.js';
 import { authAPI } from '../services/api.js';
 
 export const Register = () => {
   const [formData, setFormData] = useState({ username: '', email: '', password: '', confirmPassword: '' });
   const [errors, setErrors] = useState({});
-  const { setUser, setToken, setLoading, loading } = useAuthStore();
+  const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -19,12 +19,17 @@ export const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setSuccessMessage('');
+    setErrors({});
 
     try {
-      const response = await authAPI.register(formData);
-      setToken(response.data.token);
-      setUser(response.data.user);
-      navigate('/');
+      await authAPI.register(formData);
+      setSuccessMessage('Account created successfully! Please login with your credentials.');
+      setFormData({ username: '', email: '', password: '', confirmPassword: '' });
+      
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
     } catch (error) {
       if (error.response?.status === 409) {
         setErrors({ form: 'User already exists' });
@@ -44,9 +49,15 @@ export const Register = () => {
         <h1 className="text-3xl font-bold text-center mb-6">Chatzy</h1>
         <h2 className="text-2xl font-semibold text-center mb-6">Create Account</h2>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {errors.form && <div className="bg-red-100 text-red-700 p-3 rounded">{errors.form}</div>}
+        {successMessage && (
+          <div className="bg-green-100 text-green-700 p-3 rounded mb-4">
+            {successMessage}
+          </div>
+        )}
 
+        {errors.form && <div className="bg-red-100 text-red-700 p-3 rounded mb-4">{errors.form}</div>}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
           <Input
             label="Username"
             name="username"
