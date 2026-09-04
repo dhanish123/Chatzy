@@ -1,0 +1,183 @@
+CHATZY - COMPLETE INSTALLATION & DEPLOYMENT GUIDE
+
+QUICK START (LOCAL DEVELOPMENT):
+
+Backend:
+  cd server
+  npm install
+  cp .env.example .env
+  # Update .env with local MongoDB URL and JWT secret
+  npm start
+
+Web Frontend:
+  cd web
+  npm install
+  cp .env.example .env
+  # Update .env with local API URL
+  npm run dev
+
+Mobile Frontend:
+  cd mobile
+  npm install
+  cp .env.example .env
+  # Update .env with local API URL
+  expo start
+
+PRODUCTION DEPLOYMENT:
+
+1. CHOOSE HOSTING PROVIDER:
+   - Backend: Railway, Render, Fly.io, AWS, DigitalOcean
+   - Database: MongoDB Atlas
+   - Web: Vercel, Netlify, Cloudflare Pages
+   - Mobile: Expo Application Services (EAS)
+
+2. DATABASE SETUP (MongoDB Atlas):
+   - Create MongoDB Atlas account
+   - Create database cluster
+   - Get connection string
+   - Whitelist IP addresses
+   - Connection format: mongodb+srv://user:pass@cluster.mongodb.net/chatzy
+
+3. BACKEND DEPLOYMENT (Example: Railway):
+   - Connect GitHub repository
+   - Create project
+   - Set environment variables:
+     MONGODB_URI=<your-mongodb-atlas-url>
+     JWT_SECRET=<generate-secure-random-string>
+     NODE_ENV=production
+     FRONTEND_URL=https://yourdomain.com
+     API_URL=https://api.yourdomain.com
+     SOCKET_URL=https://api.yourdomain.com
+   - Deploy automatically
+
+4. WEB DEPLOYMENT (Example: Vercel):
+   - Import project from GitHub
+   - Set environment variables:
+     VITE_API_URL=https://api.yourdomain.com/api
+     VITE_SOCKET_URL=https://api.yourdomain.com
+   - Deploy automatically
+   - Configure custom domain
+
+5. MOBILE DEPLOYMENT:
+   - Install EAS CLI: npm install -g eas-cli
+   - Configure eas.json in mobile directory
+   - Build: eas build --platform android (or ios)
+   - Create Expo account and link project
+
+ENVIRONMENT VARIABLES:
+
+Backend (.env):
+  MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/chatzy
+  JWT_SECRET=your-super-secret-key-min-32-characters
+  PORT=5000
+  NODE_ENV=production
+  FRONTEND_URL=https://yourdomain.com
+  MOBILE_URL=exp://yourdomain.com or expo+domain://yourdomain.com
+  API_URL=https://api.yourdomain.com
+  SOCKET_URL=https://api.yourdomain.com
+
+Web (.env):
+  VITE_API_URL=https://api.yourdomain.com/api
+  VITE_SOCKET_URL=https://api.yourdomain.com
+
+Mobile (.env):
+  EXPO_PUBLIC_API_URL=https://api.yourdomain.com/api
+  EXPO_PUBLIC_SOCKET_URL=https://api.yourdomain.com
+
+DOMAIN SETUP:
+1. Purchase domain from Namecheap, GoDaddy, etc.
+2. Point nameservers to hosting provider
+3. Set up subdomains:
+   - yourdomain.com → Web frontend
+   - api.yourdomain.com → Backend API
+   - socket.yourdomain.com (optional, same as api)
+
+SSL/HTTPS:
+- Most providers (Railway, Vercel, Netlify) provide free SSL
+- Certificates auto-renew
+- HTTPS required for Socket.IO and cross-domain requests
+
+FILE UPLOADS:
+Backend stores uploads in /uploads directory. For production:
+- Option 1: Use cloud storage (AWS S3, Azure Blob, Google Cloud)
+- Option 2: Use static file hosting on deployment platform
+- Update uploadController.js to point to correct URL
+
+DATABASE SCALING:
+MongoDB Atlas provides:
+- Auto-scaling
+- Backups
+- Replication
+- Monitoring
+- Free tier for development
+
+SOCKET.IO PRODUCTION:
+- Use Node.js cluster mode or PM2 for multiple instances
+- Configure sticky sessions for connection persistence
+- Or use Socket.IO adapter for distributed deployment
+
+SECURITY CHECKLIST:
+✓ HTTPS/SSL enabled
+✓ Environment variables in deployment platform (not in code)
+✓ Strong JWT_SECRET (32+ characters, random)
+✓ CORS configured for your domains only
+✓ File upload validation
+✓ Rate limiting on auth endpoints
+✓ Database user with minimal permissions
+✓ Regular database backups
+✓ Monitor error logs
+✓ Keep dependencies updated
+
+MONITORING & LOGGING:
+- Use Sentry for error tracking
+- Use LogRocket for session replay
+- Monitor database performance in MongoDB Atlas
+- Check deployment platform logs
+
+SCALING TIPS:
+- Use CDN for static assets
+- Implement message pagination (already done)
+- Cache user profiles with Redis
+- Use database indexes
+- Monitor Socket.IO connections
+- Load balance API requests
+
+TROUBLESHOOTING:
+
+Connection Issues:
+- Check CORS configuration in server/src/app.js
+- Verify environment variables in deployment
+- Check firewall settings
+
+Database Issues:
+- Verify MongoDB connection string
+- Check IP whitelist in MongoDB Atlas
+- Ensure database exists
+
+Socket.IO Issues:
+- Check SOCKET_URL matches backend
+- Verify auth token being sent
+- Check browser console for errors
+
+File Upload Issues:
+- Check uploads directory permissions
+- Verify file size limits (set to 100MB)
+- Check MIME type filtering
+
+FIRST TIME SETUP CHECKLIST:
+[ ] Fork/clone repository
+[ ] Set up MongoDB Atlas database
+[ ] Deploy backend to hosting provider
+[ ] Deploy web to hosting provider
+[ ] Test authentication flow
+[ ] Test messaging (send/receive)
+[ ] Test real-time features (typing, online status)
+[ ] Test file uploads
+[ ] Build and deploy mobile app
+[ ] Test cross-device messaging
+[ ] Set up monitoring and error tracking
+[ ] Configure backups
+[ ] Document deployment procedure
+
+For detailed API documentation, see server/src/controllers/ files.
+For component documentation, see web/src/components/ files.

@@ -1,0 +1,200 @@
+CHATZY - FULL-STACK MESSAGING APPLICATION SETUP
+
+PROJECT STRUCTURE:
+- /server - Node.js/Express backend with Socket.IO
+- /web - React + Vite web application
+- /mobile - React Native + Expo mobile application
+
+BACKEND SETUP:
+1. Navigate to /server directory
+2. Copy .env.example to .env and configure:
+   - MONGODB_URI: MongoDB connection string (use MongoDB Atlas for production)
+   - JWT_SECRET: Secure random string for token signing
+   - PORT: Server port (default 5000)
+   - NODE_ENV: Set to "production"
+   - FRONTEND_URL: Production web URL (https://yourdomain.com)
+   - MOBILE_URL: Expo app URL (exp://yourdomain.com)
+   - API_URL: Production API URL (https://yourdomain.com/api)
+   - SOCKET_URL: Production socket URL (https://yourdomain.com)
+
+3. Install dependencies: npm install
+4. Start server: npm start
+
+DEPLOYMENT (Backend):
+- Use Railway, Render, Fly.io, or similar service
+- Set environment variables in deployment platform
+- MongoDB Atlas for database
+- Server will automatically use HTTPS with your custom domain
+
+WEB SETUP:
+1. Navigate to /web directory
+2. Copy .env.example to .env and configure:
+   - VITE_API_URL: Production API URL (https://yourdomain.com/api)
+   - VITE_SOCKET_URL: Production socket URL (https://yourdomain.com)
+
+3. Install dependencies: npm install
+4. Development: npm run dev
+5. Build: npm run build
+
+DEPLOYMENT (Web):
+- Build: npm run build
+- Deploy to Netlify, Vercel, or similar
+- Point to your backend API and Socket.IO URLs
+
+MOBILE SETUP:
+1. Navigate to /mobile directory
+2. Copy .env.example to .env and configure like web
+3. Install dependencies: npm install
+4. Install Expo CLI: npm install -g eas-cli
+5. Start development: expo start
+6. Run on Android/iOS from Expo Go or build for production
+
+FEATURES IMPLEMENTED:
+✓ User Authentication (register, login, logout, password hashing)
+✓ Real-time Messaging (Socket.IO)
+✓ Message Status (sent, delivered, read)
+✓ Message Actions (edit within 10 mins, delete within 10 mins, reply)
+✓ Unread Counts (persistent)
+✓ Friends System (add, requests, pending, accept, reject, cancel)
+✓ Blocking System (block/unblock users)
+✓ Private Conversations (persistent)
+✓ Groups (create, add members, leave, clear)
+✓ Online Status & Last Seen
+✓ Typing Indicators
+✓ File Uploads (images, videos, audio, files)
+✓ User Profiles (edit username, upload profile image)
+✓ Push Notifications (Expo)
+
+API ENDPOINTS:
+Authentication:
+- POST /api/auth/register
+- POST /api/auth/login
+- POST /api/auth/forgot-password
+
+Users:
+- GET /api/users/profile
+- PUT /api/users/profile
+- POST /api/users/profile-image
+- GET /api/users/:userId
+- GET /api/users/search?q=
+
+Friends:
+- POST /api/friends/requests
+- POST /api/friends/requests/:requestId/accept
+- POST /api/friends/requests/:requestId/reject
+- DELETE /api/friends/requests/:requestId
+- GET /api/friends/requests/pending
+- GET /api/friends/requests/sent
+- GET /api/friends
+
+Blocks:
+- POST /api/blocks
+- DELETE /api/blocks/:blockedId
+- GET /api/blocks
+- GET /api/blocks/:userId/check
+
+Conversations:
+- POST /api/conversations
+- GET /api/conversations
+- GET /api/conversations/:conversationId
+- PUT /api/conversations/:conversationId/read
+- DELETE /api/conversations/:conversationId/clear
+
+Messages:
+- GET /api/messages/:conversationId
+- POST /api/messages
+- PUT /api/messages/:messageId
+- DELETE /api/messages/:messageId
+- POST /api/messages/:messageId/read
+
+Groups:
+- POST /api/groups
+- GET /api/groups
+- GET /api/groups/:groupId
+- POST /api/groups/:groupId/members
+- DELETE /api/groups/:groupId/leave
+- DELETE /api/groups/:groupId/clear
+
+Uploads:
+- POST /api/uploads/image
+- POST /api/uploads/video
+- POST /api/uploads/audio
+- POST /api/uploads/file
+
+SOCKET.IO EVENTS:
+Connection:
+- connected
+- userOnline
+- userOffline
+
+Messages:
+- joinConversation
+- leaveConversation
+- typing
+- stopTyping
+- recording
+- stopRecording
+- messageDelivered
+- messageRead
+
+Friends:
+- joinUserRoom
+- leaveUserRoom
+- friendRequestSent
+- friendRequestReceived
+- friendRequestAccepted
+- friendRequestRejected
+- friendRequestCancelled
+
+Groups:
+- joinGroup
+- leaveGroup
+- groupTyping
+- groupStopTyping
+- groupRecording
+- groupStopRecording
+
+DATABASE MODELS:
+- User (authentication, profile, online status)
+- Message (messages, edits, deletes, status)
+- Conversation (private chats, participants, unread counts)
+- Group (group chats, members, settings)
+- FriendRequest (friend requests, pending/accepted/rejected)
+- Friendship (confirmed friendships)
+- Block (blocked users)
+- Notification (push notifications)
+
+SECURITY:
+✓ Password hashing with bcryptjs
+✓ JWT authentication
+✓ Protected API endpoints
+✓ Socket.IO authentication
+✓ CORS configuration
+✓ Authorization checks on all endpoints
+✓ Input validation
+✓ File upload validation
+
+RESPONSIVE DESIGN:
+✓ Desktop (1920x1080+)
+✓ Tablet (768-1024px)
+✓ Mobile web (320-767px)
+✓ React Native mobile app
+
+To start development:
+1. Set up MongoDB database
+2. Configure environment variables
+3. Start backend server
+4. Start web frontend
+5. Test all features across devices
+
+Production deployment checklist:
+[ ] MongoDB Atlas configured
+[ ] Backend deployed with environment variables
+[ ] Web built and deployed
+[ ] Mobile app built for production
+[ ] SSL certificates configured
+[ ] CORS properly configured
+[ ] File upload storage configured
+[ ] Push notification service configured
+[ ] Error monitoring (Sentry, etc.)
+[ ] Database backups configured

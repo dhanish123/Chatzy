@@ -1,0 +1,43 @@
+import { useChatStore } from '../stores/chatStore.js';
+import { useFriendStore } from '../stores/friendStore.js';
+import { Avatar } from './Avatar.jsx';
+import { EmptyState } from './EmptyState.jsx';
+import { LuMessageSquare } from 'react-icons/lu';
+
+export const ConversationList = ({ searchQuery = '' }) => {
+  const { conversations, setSelectedConversation } = useChatStore();
+
+  if (conversations.length === 0) {
+    return <EmptyState title="No conversations" description="Start a conversation with a friend" icon={LuMessageSquare} />;
+  }
+
+  return (
+    <div>
+      {conversations.map((conv) => {
+        const otherUser = conv.participants.find(p => p.userId._id !== localStorage.getItem('userId'));
+        if (!otherUser) return null;
+
+        return (
+          <div
+            key={conv._id}
+            onClick={() => setSelectedConversation(conv)}
+            className="px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3 flex-1">
+              <Avatar src={otherUser.userId.profileImage} initials={otherUser.userId.username[0]} size="md" />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium">{otherUser.userId.username}</p>
+                <p className="text-sm text-gray-500 truncate">{conv.lastMessage?.content || 'No messages'}</p>
+              </div>
+            </div>
+            {otherUser.unreadCount > 0 && (
+              <span className="bg-blue-600 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
+                {otherUser.unreadCount}
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};

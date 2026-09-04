@@ -1,0 +1,249 @@
+CHATZY - END-TO-END TESTING GUIDE
+
+SETUP BEFORE TESTING:
+1. Backend deployed with MongoDB Atlas
+2. Web and Mobile configured with backend URL
+3. Both backend and frontend running
+
+TEST ACCOUNTS:
+For testing, create at least 2 test accounts:
+- Account 1: test1@chatzy.com / Password1
+- Account 2: test2@chatzy.com / Password2
+
+AUTHENTICATION TESTS:
+✓ Register with valid credentials
+✓ Register fails with existing email
+✓ Register fails with short password
+✓ Login with valid credentials
+✓ Login fails with wrong password
+✓ Logout clears session
+✓ Token persists across page refresh
+✓ Redirect to login when token expired
+
+USER & PROFILE TESTS:
+✓ View own profile
+✓ Edit username
+✓ Upload profile image
+✓ Profile image updates in sidebar
+✓ Profile image updates in conversations
+✓ Search users by username
+✓ Search users by email
+
+FRIENDS SYSTEM TESTS:
+✓ Send friend request to user
+✓ Cannot send duplicate request
+✓ View sent requests
+✓ Cancel sent request
+✓ View pending requests
+✓ Accept friend request
+✓ Reject friend request
+✓ Friend appears in sidebar after accept
+✓ Cannot send request to already-friend
+✓ Conversation creates after accept
+
+PRIVATE MESSAGING TESTS:
+✓ Start conversation with friend
+✓ Send text message
+✓ Message persists after refresh
+✓ Multiple messages show in order
+✓ Unread count increments
+✓ Unread count resets on open
+✓ Message status shows sent
+✓ Message status shows delivered
+✓ Message status shows read (recipient views)
+✓ Typing indicator shows when typing
+✓ Typing indicator disappears when stop
+✓ Online status shows when online
+✓ Last seen updates when offline
+
+MESSAGE ACTIONS TESTS:
+✓ Edit message within 10 minutes
+✓ Cannot edit after 10 minutes
+✓ Edited message shows "(edited)"
+✓ Delete message within 10 minutes
+✓ Cannot delete after 10 minutes
+✓ Reply to message
+✓ Reply shows original message
+✓ Reply persists after refresh
+
+MEDIA TESTS:
+✓ Upload image
+✓ Image displays in message
+✓ Upload video
+✓ Video player shows in message
+✓ Upload audio
+✓ Audio player shows in message
+✓ Upload file
+✓ Download file link works
+✓ Large file upload doesn't hang
+✓ Invalid file type rejected
+
+GROUPS TESTS:
+✓ Create group with 2+ members
+✓ Cannot create group with 1 member
+✓ Group name required
+✓ Group appears in sidebar
+✓ Send message in group
+✓ All members receive group message
+✓ System message on creation
+✓ Add member to group
+✓ New member can see history
+✓ System message on member add
+✓ Leave group
+✓ Group removed from sidebar
+✓ Other members see leave message
+✓ Cannot send messages after leaving
+✓ Clear group chat
+
+BLOCKING TESTS:
+✓ Block user from conversation
+✓ Cannot send to blocked user
+✓ Blocked user gets single tick only
+✓ Cannot receive from blocked user
+✓ Cannot see typing from blocked user
+✓ Cannot see recording from blocked user
+✓ View blocked users list
+✓ Unblock user
+✓ Can message after unblock
+✓ Normal status after unblock
+
+RESPONSIVE TESTS:
+
+Desktop (1920x1080):
+✓ Full layout with sidebar and chat
+✓ Sidebar always visible
+✓ No horizontal scroll
+✓ All buttons accessible
+
+Tablet (768x1024):
+✓ Responsive sidebar
+✓ Full chat area
+✓ Touch-friendly buttons
+✓ No horizontal scroll
+
+Mobile Web (375x667):
+✓ Conversation list visible
+✓ Can open chat
+✓ Back button shows
+✓ Message input full width
+✓ No horizontal scroll
+✓ Touch-friendly tap targets
+
+REAL-TIME TESTS (Multiple devices):
+✓ Message appears on other device immediately
+✓ Unread count updates on other device
+✓ Typing indicator appears on other device
+✓ Online status updates on other device
+✓ Last seen updates on other device
+✓ Friend request notification on other device
+✓ Friend acceptance updates on other device
+
+PERFORMANCE TESTS:
+✓ App loads within 3 seconds
+✓ Chat loads within 2 seconds
+✓ Message send within 1 second
+✓ File upload shows progress
+✓ No memory leaks (test 100+ messages)
+✓ Handles slow network gracefully
+
+ERROR HANDLING TESTS:
+✓ Network error shows message
+✓ Invalid token redirects to login
+✓ 404 error handled gracefully
+✓ 500 error shows message
+✓ Upload failure shows message
+✓ Failed message retry works
+✓ No infinite loading states
+
+SECURITY TESTS:
+✓ Cannot access other user's messages
+✓ Cannot access unauthorized groups
+✓ Cannot edit other user's message
+✓ Cannot delete other user's message
+✓ JWT token validation on API
+✓ Socket.IO auth validation
+✓ CORS headers correct
+✓ Password never logged
+✓ Sensitive data not in localStorage
+
+API TESTS:
+All endpoints should return proper error codes:
+✓ 200 - Success
+✓ 201 - Created
+✓ 400 - Bad request
+✓ 401 - Unauthorized
+✓ 403 - Forbidden
+✓ 404 - Not found
+✓ 409 - Conflict (duplicate)
+✓ 422 - Validation error
+✓ 500 - Server error
+
+LOAD TESTS:
+✓ 100 conversations
+✓ 1000 messages in conversation
+✓ 50 group members
+✓ Rapid message sending (10 msgs/sec)
+✓ Multiple file uploads simultaneously
+✓ 10 concurrent users
+
+BROWSER COMPATIBILITY:
+✓ Chrome/Chromium
+✓ Firefox
+✓ Safari
+✓ Edge
+
+MOBILE APP TESTS:
+✓ Login screen responsive
+✓ Register screen responsive
+✓ Chat list loads
+✓ Open conversation
+✓ Send message
+✓ Message appears
+✓ Receive notification
+✓ Profile screen
+✓ Edit profile
+✓ Add friends screen
+✓ Search and add friend
+✓ Blocked users screen
+✓ Bottom tab navigation
+✓ Network resilience
+✓ Background notifications
+
+TESTING CHECKLIST BEFORE LAUNCH:
+[ ] All auth tests pass
+[ ] All messaging tests pass
+[ ] All friend tests pass
+[ ] All group tests pass
+[ ] All block tests pass
+[ ] Responsive tests on 3+ screen sizes
+[ ] Real-time tests with 2+ devices
+[ ] Performance benchmarks met
+[ ] Error handling tested
+[ ] Security checks passed
+[ ] API response codes correct
+[ ] Load tests successful
+[ ] Browser compatibility verified
+[ ] Mobile app fully tested
+[ ] Push notifications working
+[ ] Database backups configured
+[ ] Error monitoring configured
+[ ] Rate limiting tested
+[ ] CORS properly configured
+[ ] Environment variables correct
+[ ] SSL certificates valid
+[ ] Logs reviewed
+[ ] Performance metrics acceptable
+
+REGRESSION TESTING (After updates):
+- Re-run auth tests
+- Re-run messaging tests
+- Re-run real-time tests
+- Check no new errors in logs
+- Performance benchmarks still met
+
+CONTINUOUS MONITORING:
+- Check error logs daily
+- Monitor server performance
+- Monitor database size
+- Check user reports
+- Review analytics
