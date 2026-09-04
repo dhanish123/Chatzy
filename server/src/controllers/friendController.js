@@ -56,7 +56,7 @@ export const acceptFriendRequest = async (req, res, next) => {
   try {
     const { requestId } = req.params;
 
-    const friendRequest = await FriendRequest.findById(requestId);
+    const friendRequest = await FriendRequest.findById(requestId).populate('senderId');
     if (!friendRequest) {
       return res.status(404).json({ message: 'Request not found' });
     }
@@ -73,6 +73,15 @@ export const acceptFriendRequest = async (req, res, next) => {
     await friendship.save();
     friendRequest.status = 'accepted';
     await friendRequest.save();
+
+    // Emit socket event to notify the sender that request was accepted
+    const io = req.app.get('io');
+    if (io) {
+      io.to(friendRequest.senderId._id.toString()).emit('friendRequestAccepted', {
+        userId: req.userId,
+        username: (await User.findById(req.userId)).username
+      });
+    }
 
     res.json(friendRequest);
   } catch (error) {

@@ -33,6 +33,9 @@ io.on('connection', (socket) => {
   });
 });
 
+// Attach io to app for use in routes/controllers
+app.set('io', io);
+
 const startServer = async () => {
   try {
     await connectDB();
