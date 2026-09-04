@@ -30,7 +30,10 @@ export const ChatWindow = () => {
     );
   }
 
-  const otherUser = !isGroup ? selectedConversation?.participants?.find(p => p.userId._id !== user?._id)?.userId : null;
+  const otherUser = !isGroup ? selectedConversation?.participants?.find(p => {
+    const userId = typeof p.userId === 'object' ? p.userId._id : p.userId;
+    return userId !== user?._id;
+  })?.userId : null;
 
   useEffect(() => {
     if (!conversationId) return;
