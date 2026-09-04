@@ -44,8 +44,7 @@ export const ConversationList = ({ searchQuery = '' }) => {
             <div className="flex items-center gap-3 flex-1">
               <Avatar src={otherUser.userId.profileImage} initials={otherUser.userId.username?.[0] || 'U'} size="md" />
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900">{otherUser.userId.username || 'User'}</p>
-                <p className="text-xs text-gray-400 truncate">{otherUser.userId.email || 'No email'}</p>
+                <p className="font-medium text-gray-900">{otherUser.userId.username}</p>
               </div>
             </div>
             {otherUser.unreadCount > 0 && (
