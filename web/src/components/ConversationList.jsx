@@ -11,7 +11,10 @@ export const ConversationList = ({ searchQuery = '' }) => {
   // Auto-select first conversation on load if none selected
   useEffect(() => {
     if (!selectedConversation && conversations.length > 0) {
-      setSelectedConversation(conversations[0]);
+      const validConv = conversations.find(c => c?.participants && c.participants.length > 0);
+      if (validConv) {
+        setSelectedConversation(validConv);
+      }
     }
   }, [conversations, selectedConversation, setSelectedConversation]);
 
@@ -22,8 +25,15 @@ export const ConversationList = ({ searchQuery = '' }) => {
   return (
     <div>
       {conversations.map((conv) => {
-        const otherUser = conv.participants.find(p => p.userId._id !== localStorage.getItem('userId'));
-        if (!otherUser) return null;
+        // Safety check: ensure participants exist
+        if (!conv?.participants || conv.participants.length === 0) {
+          return null;
+        }
+
+        const userId = localStorage.getItem('userId');
+        const otherUser = conv.participants.find(p => p?.userId?._id !== userId);
+        
+        if (!otherUser?.userId) return null;
 
         return (
           <div
@@ -32,7 +42,7 @@ export const ConversationList = ({ searchQuery = '' }) => {
             className="px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 flex items-center justify-between"
           >
             <div className="flex items-center gap-3 flex-1">
-              <Avatar src={otherUser.userId.profileImage} initials={otherUser.userId.username[0]} size="md" />
+              <Avatar src={otherUser.userId.profileImage} initials={otherUser.userId.username?.[0] || 'U'} size="md" />
               <div className="flex-1 min-w-0">
                 <p className="font-medium">{otherUser.userId.username}</p>
                 <p className="text-sm text-gray-500 truncate">{conv.lastMessage?.content || 'No messages'}</p>
