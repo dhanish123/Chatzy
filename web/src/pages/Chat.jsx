@@ -75,7 +75,16 @@ export const Chat = () => {
   return (
     <div className="flex h-screen overflow-hidden bg-white">
       <Sidebar />
-      {selectedConversation ? <ChatWindow /> : <div className="flex-1 bg-gray-50" />}
+      {conversations.length > 0 && selectedConversation ? (
+        <ChatWindow />
+      ) : (
+        <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <p className="text-gray-500 text-lg mb-2">No conversations yet</p>
+            <p className="text-gray-400">Go to "Add Friends" to start messaging!</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
