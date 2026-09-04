@@ -1,4 +1,6 @@
 import dotenv from 'dotenv';
+dotenv.config();
+
 import app from './app.js';
 import { connectDB } from './config/database.js';
 import { createServer } from 'http';
@@ -7,8 +9,6 @@ import { socketAuthMiddleware, handleSocketConnection, handleSocketDisconnect } 
 import { handleConversationEvents } from './sockets/conversationSocket.js';
 import { handleFriendEvents } from './sockets/friendSocket.js';
 import { handleGroupEvents } from './sockets/groupSocket.js';
-
-dotenv.config();
 
 const PORT = process.env.PORT || 5000;
 
