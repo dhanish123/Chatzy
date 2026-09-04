@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Tab } from '../components/Tab.jsx';
-import { userAPI, friendAPI } from '../services/api.js';
+import { userAPI, friendAPI, conversationAPI } from '../services/api.js';
 import { useFriendStore } from '../stores/friendStore.js';
+import { useChatStore } from '../stores/chatStore.js';
 import { Avatar } from '../components/Avatar.jsx';
 import { Button } from '../components/Button.jsx';
 import { Input } from '../components/Input.jsx';
@@ -11,6 +13,8 @@ export const AddFriends = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const { pendingRequests, sentRequests, setPendingRequests, setSentRequests } = useFriendStore();
+  const { conversations, setConversations } = useChatStore();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadRequests = async () => {
@@ -66,9 +70,19 @@ export const AddFriends = () => {
     }
   };
 
-  const handleAcceptRequest = async (requestId) => {
+  const handleAcceptRequest = async (requestId, senderId) => {
     try {
       await friendAPI.acceptRequest(requestId);
+      
+      // Create/Get a conversation with the accepted user
+      const convResponse = await conversationAPI.getOrCreate(senderId);
+      
+      // Add to conversations if not already there
+      if (!conversations.some(c => c._id === convResponse.data._id)) {
+        setConversations([...conversations, convResponse.data]);
+      }
+      
+      // Remove from pending requests
       setPendingRequests(pendingRequests.filter(r => r._id !== requestId));
     } catch (error) {
       console.error('Error accepting request:', error);
@@ -154,7 +168,7 @@ export const AddFriends = () => {
                   </div>
                   <div className="flex gap-2">
                     <Button
-                      onClick={() => handleAcceptRequest(req._id)}
+                      onClick={() => handleAcceptRequest(req._id, req.senderId._id)}
                       variant="primary"
                       size="sm"
                     >
