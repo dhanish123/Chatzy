@@ -31,9 +31,16 @@ export const ConversationList = ({ searchQuery = '' }) => {
         }
 
         const userId = localStorage.getItem('userId');
-        const otherUser = conv.participants.find(p => p?.userId?._id !== userId);
+        const otherParticipant = conv.participants.find(p => p?.userId?._id !== userId);
         
-        if (!otherUser?.userId) return null;
+        if (!otherParticipant) return null;
+
+        // Handle both cases: userId is populated object or just ID string
+        const otherUserData = typeof otherParticipant.userId === 'object' 
+          ? otherParticipant.userId 
+          : null;
+
+        if (!otherUserData) return null;
 
         return (
           <div
@@ -42,14 +49,14 @@ export const ConversationList = ({ searchQuery = '' }) => {
             className="px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 flex items-center justify-between"
           >
             <div className="flex items-center gap-3 flex-1">
-              <Avatar src={otherUser.userId.profileImage} initials={otherUser.userId.username?.[0] || 'U'} size="md" />
+              <Avatar src={otherUserData.profileImage} initials={otherUserData.username?.[0] || 'U'} size="md" />
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900">{otherUser.userId.username}</p>
+                <p className="font-medium text-gray-900">{otherUserData.username}</p>
               </div>
             </div>
-            {otherUser.unreadCount > 0 && (
+            {otherParticipant.unreadCount > 0 && (
               <span className="bg-blue-600 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
-                {otherUser.unreadCount}
+                {otherParticipant.unreadCount}
               </span>
             )}
           </div>
