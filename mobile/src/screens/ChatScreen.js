@@ -186,7 +186,7 @@ export const ChatScreen = () => {
         // Mark all received messages as read
         if (response.data && response.data.length > 0) {
           response.data.forEach((msg) => {
-            if (!msg.isSystemMessage && msg.senderId._id !== user?._id) {
+            if (!msg.isSystemMessage && msg.senderId._id?.toString() !== user?._id?.toString()) {
               if (socket) {
                 socket.emit(isGroup ? 'groupMessageRead' : 'messageRead', {
                   messageId: msg._id,
@@ -533,7 +533,7 @@ export const ChatScreen = () => {
       );
     }
 
-    const isOwn = item.senderId._id === user?._id;
+    const isOwn = item.senderId._id?.toString() === user?._id?.toString();
     const canEdit = isOwn && !item.isDeleted && Date.now() - new Date(item.createdAt).getTime() < 10 * 60 * 1000;
     const canDelete = isOwn && !item.isDeleted && Date.now() - new Date(item.createdAt).getTime() < 10 * 60 * 1000;
 
