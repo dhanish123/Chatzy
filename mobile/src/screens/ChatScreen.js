@@ -120,11 +120,13 @@ const styles = StyleSheet.create({
 
 export const ChatScreen = () => {
   const { user } = useAuthStore();
-  const { selectedConversation, selectedGroup, messages, setMessages, addMessage } = useChatStore();
+  const { selectedConversation, selectedGroup, messages, setMessages, addMessage, updateMessage } = useChatStore();
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [editingMessage, setEditingMessage] = useState(null);
+  const [replyingTo, setReplyingTo] = useState(null);
   const flatListRef = useRef(null);
   const socket = getSocket();
 
@@ -172,21 +174,56 @@ export const ChatScreen = () => {
   }, [messages]);
 
   const handleSend = async () => {
-    if (!message.trim()) return;
+    if (editingMessage) {
+      try {
+        const response = await messageAPI.edit(editingMessage._id, message);
+        updateMessage(editingMessage._id, { content: response.data.content, isEdited: true });
+        setEditingMessage(null);
+        setMessage('');
 
+        if (socket) {
+          socket.emit('messageUpdated', { messageId: editingMessage._id, content: response.data.content });
+        }
+      } catch (error) {
+        console.error('Error editing message:', error);
+      }
+    } else if (!message.trim()) {
+      return;
+    } else {
+      try {
+        const response = await messageAPI.send({
+          conversationId,
+          content: message,
+          replyTo: replyingTo?._id
+        });
+        addMessage(response.data);
+        setMessage('');
+        setReplyingTo(null);
+
+        if (socket) {
+          socket.emit('messageDelivered', { messageId: response.data._id, conversationId });
+        }
+      } catch (error) {
+        console.error('Error sending message:', error);
+      }
+    }
+  };
+
+  const handleEditMessage = (msg) => {
+    setEditingMessage(msg);
+    setMessage(msg.content);
+  };
+
+  const handleDeleteMessage = async (messageId) => {
     try {
-      const response = await messageAPI.send({
-        conversationId,
-        content: message
-      });
-      addMessage(response.data);
-      setMessage('');
+      const response = await messageAPI.delete(messageId);
+      updateMessage(messageId, response.data);
 
       if (socket) {
-        socket.emit('messageDelivered', { messageId: response.data._id, conversationId });
+        socket.emit('messageDeleted', { messageId });
       }
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Error deleting message:', error);
     }
   };
 
@@ -202,9 +239,11 @@ export const ChatScreen = () => {
         conversationId,
         content: '',
         mediaUrl: response.data.url,
-        mediaType: 'audio'
+        mediaType: 'audio',
+        replyTo: replyingTo?._id
       });
       addMessage(msgResponse.data);
+      setReplyingTo(null);
 
       if (socket) {
         socket.emit('messageDelivered', { messageId: msgResponse.data._id, conversationId });
@@ -232,9 +271,11 @@ export const ChatScreen = () => {
         conversationId,
         content: '',
         mediaUrl: response.data.url,
-        mediaType: media.type === 'file' ? 'file' : media.type
+        mediaType: media.type === 'file' ? 'file' : media.type,
+        replyTo: replyingTo?._id
       });
       addMessage(msgResponse.data);
+      setReplyingTo(null);
 
       if (socket) {
         socket.emit('messageDelivered', { messageId: msgResponse.data._id, conversationId });
@@ -248,18 +289,56 @@ export const ChatScreen = () => {
 
   const renderMessage = ({ item }) => {
     const isOwn = item.senderId._id === user?._id;
+    const canEdit = isOwn && !item.isDeleted && Date.now() - new Date(item.createdAt).getTime() < 10 * 60 * 1000;
+    const canDelete = isOwn && !item.isDeleted && Date.now() - new Date(item.createdAt).getTime() < 10 * 60 * 1000;
 
     return (
-      <View style={styles.messageBubble}>
-        <View style={[styles.bubbleContent, isOwn ? styles.ownBubble : styles.otherBubble]}>
-          <Text style={isOwn ? styles.ownText : styles.otherText}>
-            {item.isDeleted ? 'Message deleted' : item.content}
-          </Text>
+      <Pressable
+        onLongPress={() => {
+          if (canEdit || canDelete) {
+            // Show action menu (edit/delete/reply)
+          }
+        }}
+      >
+        {item.replyTo && (
+          <View style={{ marginBottom: 4, paddingHorizontal: 8 }}>
+            <View style={{ backgroundColor: isOwn ? '#1e40af' : '#d1d5db', borderLeftWidth: 2, borderLeftColor: isOwn ? '#3b82f6' : '#6b7280', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
+              <Text style={{ fontSize: 10, fontWeight: '600', color: isOwn ? '#dbeafe' : '#6b7280' }}>Reply to</Text>
+              <Text style={{ fontSize: 11, color: isOwn ? '#93c5fd' : '#4b5563', marginTop: 2 }} numberOfLines={1}>{item.replyTo.content}</Text>
+            </View>
+          </View>
+        )}
+
+        <View style={styles.messageBubble}>
+          <View style={[styles.bubbleContent, isOwn ? styles.ownBubble : styles.otherBubble]}>
+            <Text style={isOwn ? styles.ownText : styles.otherText}>
+              {item.isDeleted ? 'Message deleted' : item.content}
+            </Text>
+            {item.isEdited && <Text style={{ fontSize: 9, color: isOwn ? '#bfdbfe' : '#9ca3af', marginTop: 2 }}>(edited)</Text>}
+          </View>
+
+          <View style={{ flexDirection: 'row', justifyContent: isOwn ? 'flex-end' : 'flex-start', alignItems: 'center', gap: 4, paddingHorizontal: 12, marginTop: 4 }}>
+            <Text style={[styles.messageTime, { textAlign: isOwn ? 'right' : 'left' }]}>
+              {new Date(item.createdAt).toLocaleTimeString()}
+            </Text>
+            {isOwn && (
+              <>
+                {item.status === 'sent' && <MaterialIcons name="done" size={12} color="#6b7280" />}
+                {item.status === 'delivered' && <MaterialIcons name="done-all" size={12} color="#6b7280" />}
+                {item.status === 'read' && <MaterialIcons name="done-all" size={12} color="#3b82f6" />}
+              </>
+            )}
+          </View>
+
+          {(canEdit || canDelete) && (
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 4, paddingHorizontal: 12, justifyContent: isOwn ? 'flex-end' : 'flex-start' }}>
+              {canEdit && <Pressable onPress={() => handleEditMessage(item)}><Text style={{ fontSize: 11, color: '#3b82f6' }}>Edit</Text></Pressable>}
+              {canDelete && <Pressable onPress={() => handleDeleteMessage(item._id)}><Text style={{ fontSize: 11, color: '#ef4444' }}>Delete</Text></Pressable>}
+              <Pressable onPress={() => setReplyingTo(item)}><Text style={{ fontSize: 11, color: '#6b7280' }}>Reply</Text></Pressable>
+            </View>
+          )}
         </View>
-        <Text style={[styles.messageTime, { textAlign: isOwn ? 'right' : 'left' }]}>
-          {new Date(item.createdAt).toLocaleTimeString()}
-        </Text>
-      </View>
+      </Pressable>
     );
   };
 
@@ -297,6 +376,30 @@ export const ChatScreen = () => {
           />
         ) : (
           <View style={styles.inputContainer}>
+            {editingMessage && (
+              <View style={{ backgroundColor: '#eff6ff', borderLeftWidth: 3, borderLeftColor: '#3b82f6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 4, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: '#3b82f6' }}>Editing message</Text>
+                  <Text style={{ fontSize: 12, color: '#374151', marginTop: 2 }} numberOfLines={1}>{editingMessage.content}</Text>
+                </View>
+                <Pressable onPress={() => { setEditingMessage(null); setMessage(''); }}>
+                  <MaterialIcons name="close" size={18} color="#6b7280" />
+                </Pressable>
+              </View>
+            )}
+
+            {replyingTo && (
+              <View style={{ backgroundColor: '#f3f4f6', borderLeftWidth: 3, borderLeftColor: '#6b7280', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 4, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: '#6b7280' }}>Replying to</Text>
+                  <Text style={{ fontSize: 12, color: '#374151', marginTop: 2 }} numberOfLines={1}>{replyingTo.content}</Text>
+                </View>
+                <Pressable onPress={() => setReplyingTo(null)}>
+                  <MaterialIcons name="close" size={18} color="#6b7280" />
+                </Pressable>
+              </View>
+            )}
+
             <View style={styles.controlsRow}>
               <MediaSelector
                 onMediaSelect={handleMediaSelect}
@@ -324,7 +427,7 @@ export const ChatScreen = () => {
             <View style={styles.inputRow}>
               <TextInput
                 style={styles.input}
-                placeholder="Type a message..."
+                placeholder={editingMessage ? "Edit message..." : "Type a message..."}
                 value={message}
                 onChangeText={setMessage}
                 multiline
@@ -335,8 +438,8 @@ export const ChatScreen = () => {
               <Pressable
                 style={styles.sendButton}
                 onPress={handleSend}
-                disabled={(!message.trim() && !isUploading) || isUploading}
-                opacity={(!message.trim() && !isUploading) || isUploading ? 0.5 : 1}
+                disabled={(!message.trim() && !editingMessage && !isUploading) || isUploading}
+                opacity={(!message.trim() && !editingMessage && !isUploading) || isUploading ? 0.5 : 1}
               >
                 <Text style={styles.sendText}>›</Text>
               </Pressable>
