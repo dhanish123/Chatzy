@@ -412,7 +412,7 @@ export const ChatWindow = () => {
               <MessageBubble
                 key={msg._id}
                 message={msg}
-                isOwn={msg.senderId._id === user?._id}
+                isOwn={msg.senderId._id?.toString() === user?._id?.toString()}
                 isGroup={isGroup}
                 onReply={(message) => {
                   setReplyingTo(message);
