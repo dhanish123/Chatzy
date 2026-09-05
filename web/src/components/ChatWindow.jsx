@@ -116,11 +116,22 @@ export const ChatWindow = () => {
           setIsOtherUserTyping(false);
         };
 
+        const handleGroupMemberAdded = async (data) => {
+          // Refresh group to get updated members list
+          try {
+            const updatedGroup = await groupAPI.get(conversationId);
+            setSelectedGroup(updatedGroup.data);
+          } catch (error) {
+            console.error('Error refreshing group members:', error);
+          }
+        };
+
         socket.on('groupNewMessage', handleGroupNewMessage);
         socket.on('groupMessageRead', handleMessageStatusUpdated);
         socket.on('messageStatusUpdated', handleMessageStatusUpdated);
         socket.on('userTypingGroup', handleGroupTyping);
         socket.on('userStoppedTypingGroup', handleGroupStopTyping);
+        socket.on('groupMemberAdded', handleGroupMemberAdded);
         
         return () => {
           socket.off('groupNewMessage', handleGroupNewMessage);
@@ -128,6 +139,7 @@ export const ChatWindow = () => {
           socket.off('messageStatusUpdated', handleMessageStatusUpdated);
           socket.off('userTypingGroup', handleGroupTyping);
           socket.off('userStoppedTypingGroup', handleGroupStopTyping);
+          socket.off('groupMemberAdded', handleGroupMemberAdded);
           socket.emit('leaveGroup', conversationId);
         };
       } else {
