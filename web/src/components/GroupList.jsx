@@ -1,4 +1,5 @@
 import { useGroupStore } from '../stores/groupStore.js';
+import { useChatStore } from '../stores/chatStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { Avatar } from './Avatar.jsx';
 import { EmptyState } from './EmptyState.jsx';
@@ -7,6 +8,7 @@ import { LuUsers } from 'react-icons/lu';
 export const GroupList = () => {
   const { user } = useAuthStore();
   const { groups, setSelectedGroup, selectedGroup } = useGroupStore();
+  const { setSelectedConversation } = useChatStore();
 
   if (groups.length === 0) {
     return <EmptyState title="No groups" description="Create or join a group" icon={LuUsers} />;
@@ -21,7 +23,10 @@ export const GroupList = () => {
         return (
           <div
             key={group._id}
-            onClick={() => setSelectedGroup(group)}
+            onClick={() => {
+              setSelectedGroup(group);
+              setSelectedConversation(null); // Clear private chat when selecting group
+            }}
             className="px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 flex items-center justify-between"
           >
             <div className="flex items-center gap-3 flex-1">
@@ -29,9 +34,7 @@ export const GroupList = () => {
               <div className="flex-1 min-w-0">
                 <p className="font-medium">{group.name}</p>
                 <p className="text-sm text-gray-500 truncate">
-                  {group.lastMessage?.isDeleted
-                    ? 'Message deleted'
-                    : group.lastMessage?.mediaType === 'audio' 
+                  {group.lastMessage?.mediaType === 'audio' 
                     ? '🎙️ Audio message'
                     : group.lastMessage?.mediaType === 'image'
                     ? '📷 Image'

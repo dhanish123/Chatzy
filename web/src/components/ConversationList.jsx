@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useChatStore } from '../stores/chatStore.js';
+import { useGroupStore } from '../stores/groupStore.js';
 import { useFriendStore } from '../stores/friendStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { Avatar } from './Avatar.jsx';
@@ -8,6 +9,7 @@ import { LuMessageSquare } from 'react-icons/lu';
 
 export const ConversationList = ({ searchQuery = '' }) => {
   const { conversations, setSelectedConversation, selectedConversation } = useChatStore();
+  const { setSelectedGroup } = useGroupStore();
   const { user } = useAuthStore();
 
   // Auto-select first conversation on load if none selected
@@ -40,7 +42,10 @@ export const ConversationList = ({ searchQuery = '' }) => {
         return (
           <div
             key={conv._id}
-            onClick={() => setSelectedConversation(conv)}
+            onClick={() => {
+              setSelectedConversation(conv);
+              setSelectedGroup(null); // Clear group when selecting private chat
+            }}
             className="px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 flex items-center justify-between"
           >
             <div className="flex items-center gap-3 flex-1">
@@ -48,9 +53,7 @@ export const ConversationList = ({ searchQuery = '' }) => {
               <div className="flex-1 min-w-0">
                 <p className="font-medium">{otherUser.userId.username}</p>
                 <p className="text-sm text-gray-500 truncate">
-                  {conv.lastMessage?.isDeleted
-                    ? 'Message deleted'
-                    : conv.lastMessage?.mediaType === 'audio' 
+                  {conv.lastMessage?.mediaType === 'audio' 
                     ? '🎙️ Audio message'
                     : conv.lastMessage?.mediaType === 'image'
                     ? '📷 Image'
