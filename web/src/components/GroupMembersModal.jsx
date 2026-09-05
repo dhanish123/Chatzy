@@ -1,19 +1,82 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { Avatar } from './Avatar';
-import { groupAPI } from '../services/api';
+import { groupAPI, friendAPI } from '../services/api';
 import { ConfirmDialog } from './ConfirmDialog';
 import { AlertDialog } from './AlertDialog';
 
 export const GroupMembersModal = ({ isOpen, group, currentUserId, isAdmin, onClose, onMembersUpdate }) => {
   const [loading, setLoading] = useState(false);
+  const [showAddMembers, setShowAddMembers] = useState(false);
+  const [friendsList, setFriendsList] = useState([]);
+  const [selectedMembers, setSelectedMembers] = useState([]);
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, action: null, memberId: null, memberName: null });
   const [alertDialog, setAlertDialog] = useState({ isOpen: false, type: 'error', title: '', message: '' });
-  const navigate = useNavigate();
 
-  const handleAddMembers = () => {
-    onClose?.();
-    navigate('/add-friends');
+  const handleOpenAddMembers = async () => {
+    try {
+      setLoading(true);
+      const response = await friendAPI.getFriends();
+      // Filter out members already in group
+      const existingMemberIds = group.members.map(m => m.userId._id);
+      const filteredFriends = response.data.filter(f => !existingMemberIds.includes(f._id));
+      setFriendsList(filteredFriends);
+      setSelectedMembers([]);
+      setShowAddMembers(true);
+    } catch (error) {
+      console.error('Error loading friends:', error);
+      setAlertDialog({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to load friends list'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMemberToggle = (friendId) => {
+    setSelectedMembers(prev =>
+      prev.includes(friendId)
+        ? prev.filter(id => id !== friendId)
+        : [...prev, friendId]
+    );
+  };
+
+  const handleConfirmAddMembers = async () => {
+    if (selectedMembers.length === 0) {
+      setAlertDialog({
+        isOpen: true,
+        type: 'warning',
+        title: 'Select Members',
+        message: 'Please select at least one member'
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await groupAPI.addMembers(group._id, selectedMembers);
+      onMembersUpdate?.(response.data);
+      setShowAddMembers(false);
+      setSelectedMembers([]);
+      setAlertDialog({
+        isOpen: true,
+        type: 'success',
+        title: 'Success',
+        message: `Added ${selectedMembers.length} member(s) to the group`
+      });
+    } catch (error) {
+      console.error('Error adding members:', error);
+      setAlertDialog({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: error.response?.data?.message || 'Failed to add members'
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleMakeAdmin = async (memberId) => {
@@ -190,7 +253,7 @@ export const GroupMembersModal = ({ isOpen, group, currentUserId, isAdmin, onClo
           {isAdmin && (
             <div className="border-t border-gray-200 p-4">
               <button
-                onClick={handleAddMembers}
+                onClick={handleOpenAddMembers}
                 disabled={loading}
                 className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50"
               >
@@ -200,6 +263,81 @@ export const GroupMembersModal = ({ isOpen, group, currentUserId, isAdmin, onClo
           )}
         </div>
       </div>
+
+      {/* Add Members Modal */}
+      {showAddMembers && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-md w-full max-h-96 flex flex-col">
+            {/* Header */}
+            <div className="border-b border-gray-200 p-4 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900">Add Friends to Group</h3>
+              <button
+                onClick={() => setShowAddMembers(false)}
+                disabled={loading}
+                className="text-gray-500 hover:text-gray-700 disabled:opacity-50"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Friends List */}
+            <div className="flex-1 overflow-y-auto">
+              {friendsList.length > 0 ? (
+                <ul className="divide-y divide-gray-200">
+                  {friendsList.map((friend) => (
+                    <li
+                      key={friend._id}
+                      onClick={() => handleMemberToggle(friend._id)}
+                      className="p-3 hover:bg-gray-50 cursor-pointer transition flex items-center gap-3"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedMembers.includes(friend._id)}
+                        onChange={() => handleMemberToggle(friend._id)}
+                        className="w-4 h-4 text-blue-600 rounded"
+                      />
+                      <Avatar
+                        src={friend.profileImage}
+                        initials={friend.username?.[0]}
+                        size="sm"
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">{friend.username}</p>
+                        <p className="text-xs text-gray-500">{friend.email}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="p-4 text-center text-gray-500">
+                  <p>No friends to add</p>
+                  <p className="text-xs mt-2">All your friends are already in this group</p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-gray-200 p-4 flex gap-3">
+              <button
+                onClick={() => setShowAddMembers(false)}
+                disabled={loading}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmAddMembers}
+                disabled={loading || selectedMembers.length === 0}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50"
+              >
+                Add ({selectedMembers.length})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirm Dialog */}
       <ConfirmDialog
