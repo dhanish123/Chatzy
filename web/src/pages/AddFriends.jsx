@@ -84,6 +84,9 @@ export const AddFriends = () => {
       
       // Remove from pending requests
       setPendingRequests(pendingRequests.filter(r => r._id !== requestId));
+      
+      // Navigate to chat page to show the new conversation
+      navigate('/chat');
     } catch (error) {
       console.error('Error accepting request:', error);
     }

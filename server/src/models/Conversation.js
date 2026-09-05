@@ -2,7 +2,10 @@ import mongoose from 'mongoose';
 
 const conversationSchema = new mongoose.Schema({
   participants: [{
-    userId: mongoose.Schema.Types.ObjectId,
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
     unreadCount: {
       type: Number,
       default: 0

@@ -32,7 +32,7 @@ export const Chat = () => {
     };
 
     loadData();
-  }, []);
+  }, [setConversations]);
 
   // Initialize socket and listen for friend acceptance events
   useEffect(() => {
@@ -44,18 +44,11 @@ export const Chat = () => {
     // Listen for friend request acceptance
     socket.on('friendRequestAccepted', async (data) => {
       try {
-        // Create/get conversation with the new friend
-        const convResponse = await conversationAPI.getOrCreate(data.userId);
-        
-        // Add to conversations if not already there
-        setConversations(prev => {
-          if (!prev.some(c => c._id === convResponse.data._id)) {
-            return [...prev, convResponse.data];
-          }
-          return prev;
-        });
+        // Refetch all conversations to get the latest populated data
+        const convResponse = await conversationAPI.getAll();
+        setConversations(convResponse.data);
       } catch (error) {
-        console.error('Error creating conversation:', error);
+        console.error('Error fetching conversations:', error);
       }
     });
 

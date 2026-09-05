@@ -14,10 +14,7 @@ export const getOrCreateConversation = async (req, res, next) => {
         { 'participants.userId': req.userId },
         { 'participants.userId': otherUserId }
       ]
-    }).populate([
-      { path: 'lastMessage' },
-      { path: 'participants.userId', select: '-password' }
-    ]);
+    });
 
     if (!conversation) {
       conversation = new Conversation({
@@ -27,13 +24,13 @@ export const getOrCreateConversation = async (req, res, next) => {
         ]
       });
       await conversation.save();
-      
-      // Populate after saving
-      await conversation.populate([
-        { path: 'lastMessage' },
-        { path: 'participants.userId', select: '-password' }
-      ]);
     }
+
+    // Populate user data before returning
+    await conversation.populate([
+      { path: 'lastMessage' },
+      { path: 'participants.userId', select: '-password' }
+    ]);
 
     res.json(conversation);
   } catch (error) {
