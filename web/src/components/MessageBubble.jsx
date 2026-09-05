@@ -87,9 +87,13 @@ export const MessageBubble = ({
                 </div>
               )}
               {(message.mediaType === 'application' || message.mediaType === 'application/pdf') && (
-                <div className="bg-gray-100 p-3 rounded flex items-center gap-2 max-w-xs">
-                  <span className="text-2xl">📕</span>
-                  <a href={message.mediaUrl} download target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:text-blue-700 break-all">
+                <div className="flex flex-col gap-2">
+                  <iframe 
+                    src={message.mediaUrl} 
+                    className="w-80 h-96 rounded border border-gray-300"
+                    title="PDF Viewer"
+                  />
+                  <a href={message.mediaUrl} download target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:text-blue-700 text-sm">
                     Download PDF
                   </a>
                 </div>
