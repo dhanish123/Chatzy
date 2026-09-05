@@ -69,15 +69,22 @@ export const MessageBubble = ({
                   alt="message" 
                   className="max-w-xs rounded" 
                   onError={handleImageError}
+                  loading="lazy"
                 />
               )}
               {message.mediaType === 'video' && (
                 <video src={message.mediaUrl} controls className="max-w-xs rounded" />
               )}
+              {message.mediaType === 'audio' && (
+                <audio src={message.mediaUrl} controls className="max-w-xs rounded" />
+              )}
               {message.mediaType === 'file' && (
-                <a href={message.mediaUrl} target="_blank" rel="noopener noreferrer" className="underline">
-                  Download file
-                </a>
+                <div className="bg-gray-100 p-3 rounded flex items-center gap-2 max-w-xs">
+                  <span className="text-2xl">📄</span>
+                  <a href={message.mediaUrl} download target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:text-blue-700 break-all">
+                    Download File
+                  </a>
+                </div>
               )}
               {message.content && <p className="mt-2">{message.content}</p>}
             </div>

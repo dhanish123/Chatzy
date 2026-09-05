@@ -53,7 +53,13 @@ export const MediaDropdown = ({ onFileSelect, isUploading }) => {
     if (file) {
       setError('');
       if (validateFileSize(file, uploadType)) {
-        onFileSelect(file);
+        // For photo/video, upload directly without preview
+        if (uploadType === 'photo-video') {
+          onFileSelect(file, true); // true = skipPreview
+        } else {
+          // For files, show preview
+          onFileSelect(file, false);
+        }
         setShowDropdown(false);
       }
     }

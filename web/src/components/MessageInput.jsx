@@ -66,12 +66,42 @@ export const MessageInput = ({
     setMessage(prev => prev + emoji);
   };
 
-  const handleFileUpload = async (file) => {
+  const handleFileUpload = async (file, skipPreview) => {
     if (!file) return;
     
-    // Show preview instead of uploading immediately
-    setSelectedFile(file);
-    setShowPreview(true);
+    // If skipPreview is true (for photos/videos), upload directly
+    if (skipPreview) {
+      handleConfirmUploadDirect(file);
+    } else {
+      // Show preview for files
+      setSelectedFile(file);
+      setShowPreview(true);
+    }
+  };
+
+  const handleConfirmUploadDirect = async (file) => {
+    setUploading(true);
+    try {
+      let response;
+      if (file.type.startsWith('image/')) {
+        response = await uploadAPI.image(file);
+      } else if (file.type.startsWith('video/')) {
+        response = await uploadAPI.video(file);
+      } else if (file.type.startsWith('audio/')) {
+        response = await uploadAPI.audio(file);
+      } else {
+        response = await uploadAPI.file(file);
+      }
+      
+      const mediaType = file.type.split('/')[0];
+      onSend('', response.data.url, mediaType === 'application' ? 'file' : mediaType, replyingTo?._id);
+      onCancelReply?.();
+    } catch (error) {
+      console.error('Upload error:', error);
+      setShowAlert(true);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleConfirmUpload = async () => {
