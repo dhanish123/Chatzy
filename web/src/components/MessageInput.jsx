@@ -6,6 +6,7 @@ import { uploadAPI } from '../services/api.js';
 import { VoiceRecorder } from './VoiceRecorder.jsx';
 import { EmojiPickerPopup } from './EmojiPickerPopup.jsx';
 import { MediaDropdown } from './MediaDropdown.jsx';
+import { MediaPreview } from './MediaPreview.jsx';
 
 export const MessageInput = ({ 
   onSend, 
@@ -20,6 +21,8 @@ export const MessageInput = ({
   const [message, setMessage] = useState('');
   const [uploading, setUploading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleSend = async () => {
@@ -37,28 +40,38 @@ export const MessageInput = ({
     setMessage(prev => prev + emoji);
   };
 
-  const handleFileUpload = async (e) => {
-    const file = e.target.files?.[0];
+  const handleFileUpload = async (file) => {
     if (!file) return;
+    
+    // Show preview instead of uploading immediately
+    setSelectedFile(file);
+    setShowPreview(true);
+  };
+
+  const handleConfirmUpload = async () => {
+    if (!selectedFile) return;
 
     setUploading(true);
     try {
       let response;
-      if (file.type.startsWith('image/')) {
-        response = await uploadAPI.image(file);
-      } else if (file.type.startsWith('video/')) {
-        response = await uploadAPI.video(file);
-      } else if (file.type.startsWith('audio/')) {
-        response = await uploadAPI.audio(file);
+      if (selectedFile.type.startsWith('image/')) {
+        response = await uploadAPI.image(selectedFile);
+      } else if (selectedFile.type.startsWith('video/')) {
+        response = await uploadAPI.video(selectedFile);
+      } else if (selectedFile.type.startsWith('audio/')) {
+        response = await uploadAPI.audio(selectedFile);
       } else {
-        response = await uploadAPI.file(file);
+        response = await uploadAPI.file(selectedFile);
       }
       
-      const mediaType = file.type.split('/')[0];
+      const mediaType = selectedFile.type.split('/')[0];
       onSend('', response.data.url, mediaType === 'application' ? 'file' : mediaType, replyingTo?._id);
       onCancelReply?.();
+      setSelectedFile(null);
+      setShowPreview(false);
     } catch (error) {
       console.error('Upload error:', error);
+      alert('Upload failed. Please try again.');
     } finally {
       setUploading(false);
     }
@@ -151,6 +164,17 @@ export const MessageInput = ({
           </button>
         </div>
       )}
+
+      {/* Media Preview Modal */}
+      <MediaPreview
+        file={selectedFile}
+        onConfirm={handleConfirmUpload}
+        onCancel={() => {
+          setSelectedFile(null);
+          setShowPreview(false);
+        }}
+        isUploading={uploading}
+      />
     </div>
   );
 };
