@@ -58,7 +58,7 @@ export const AudioMessage = ({ audioUrl }) => {
       bars.push(
         <div
           key={i}
-          className="w-0.5 bg-blue-600 rounded-full transition-all"
+          className="w-0.5 bg-white rounded-full transition-all"
           style={{ height: `${height}px` }}
         />
       );
@@ -67,12 +67,12 @@ export const AudioMessage = ({ audioUrl }) => {
   };
 
   return (
-    <div className="flex items-center gap-3 bg-white rounded-lg p-3 w-fit max-w-xs border border-gray-200 shadow-sm">
+    <div className="flex items-center gap-3 rounded-lg p-3 w-fit max-w-xs">
       <audio ref={audioRef} src={audioUrl} />
 
       <button
         onClick={togglePlay}
-        className="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-2.5 flex-shrink-0 transition-colors"
+        className="bg-white hover:bg-gray-100 text-blue-600 rounded-full p-2.5 flex-shrink-0 transition-colors"
       >
         {isPlaying ? (
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -89,7 +89,7 @@ export const AudioMessage = ({ audioUrl }) => {
         {generateWaveform()}
       </div>
 
-      <span className="text-xs text-gray-700 font-medium ml-1 whitespace-nowrap">
+      <span className="text-xs text-white font-medium ml-1 whitespace-nowrap">
         {formatTime(duration)}
       </span>
     </div>

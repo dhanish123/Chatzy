@@ -15,6 +15,7 @@ export const VoiceRecorder = ({ onSend, onCancel }) => {
   const chunksRef = useRef([]);
 
   useEffect(() => {
+    startRecording();
     return () => {
       if (mediaRecorderRef.current && isRecording) {
         mediaRecorderRef.current.stop();
