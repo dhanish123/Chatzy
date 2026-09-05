@@ -92,6 +92,23 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#6b7280',
     fontSize: 16
+  },
+  statusButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  statusButtonText: {
+    fontSize: 12,
+    fontWeight: '600'
+  },
+  friendsButton: {
+    backgroundColor: '#d1d5db'
+  },
+  friendsButtonText: {
+    color: '#4b5563'
   }
 });
 
@@ -99,23 +116,48 @@ export const AddFriendsScreen = () => {
   const [tab, setTab] = useState('search');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [friends, setFriends] = useState([]);
   const { pendingRequests, sentRequests, setPendingRequests, setSentRequests } = useFriendStore();
 
   useEffect(() => {
     const loadRequests = async () => {
       try {
-        const [pending, sent] = await Promise.all([
+        const [pending, sent, friendsList] = await Promise.all([
           friendAPI.getPendingRequests(),
-          friendAPI.getSentRequests()
+          friendAPI.getSentRequests(),
+          friendAPI.getFriends()
         ]);
         setPendingRequests(pending.data);
         setSentRequests(sent.data);
+        setFriends(friendsList.data);
       } catch (error) {
         console.error('Error loading requests:', error);
       }
     };
     loadRequests();
   }, []);
+
+  const getButtonState = (userId) => {
+    // Check if already friends
+    if (friends.some(f => f._id === userId)) {
+      return { type: 'friends', label: 'Friends', disabled: true };
+    }
+
+    // Check if pending request from this user
+    if (pendingRequests.some(r => r.senderId._id === userId)) {
+      const request = pendingRequests.find(r => r.senderId._id === userId);
+      return { type: 'pending', label: 'Pending', disabled: true, requestId: request._id };
+    }
+
+    // Check if sent request to this user
+    if (sentRequests.some(r => r.receiverId._id === userId)) {
+      const request = sentRequests.find(r => r.receiverId._id === userId);
+      return { type: 'sent', label: 'Cancel', disabled: false, requestId: request._id };
+    }
+
+    // Default: invite
+    return { type: 'invite', label: 'Invite', disabled: false };
+  };
 
   const handleSearch = async () => {
     if (searchQuery.length < 2) {
@@ -133,7 +175,14 @@ export const AddFriendsScreen = () => {
   const handleSendRequest = async (userId) => {
     try {
       await friendAPI.sendRequest(userId);
-      setSearchResults(searchResults.filter(u => u._id !== userId));
+      // Update search results to show "Cancel" button
+      setSearchResults(searchResults.map(u => u._id === userId ? u : u));
+      // Add to sent requests
+      const newSentRequest = {
+        _id: Math.random().toString(),
+        receiverId: searchResults.find(u => u._id === userId)
+      };
+      setSentRequests([...sentRequests, newSentRequest]);
       Alert.alert('Success', 'Friend request sent');
     } catch (error) {
       Alert.alert('Error', 'Failed to send request');
@@ -192,18 +241,47 @@ export const AddFriendsScreen = () => {
 
       <FlatList
         data={searchResults}
-        renderItem={({ item }) => (
-          <View style={styles.item}>
-            <View style={styles.itemInfo}>
-              <Text style={styles.itemName}>{item.username}</Text>
-              <Text style={styles.itemEmail}>{item.email}</Text>
+        renderItem={({ item }) => {
+          const buttonState = getButtonState(item._id);
+          return (
+            <View style={styles.item}>
+              <View style={styles.itemInfo}>
+                <Text style={styles.itemName}>{item.username}</Text>
+                <Text style={styles.itemEmail}>{item.email}</Text>
+              </View>
+              {buttonState.type === 'friends' ? (
+                <Pressable
+                  style={[styles.statusButton, styles.friendsButton]}
+                  disabled={true}
+                >
+                  <Text style={[styles.statusButtonText, styles.friendsButtonText]}>
+                    {buttonState.label}
+                  </Text>
+                </Pressable>
+              ) : buttonState.type === 'pending' ? (
+                <Pressable
+                  style={[styles.statusButton, styles.friendsButton]}
+                  disabled={true}
+                >
+                  <Text style={[styles.statusButtonText, styles.friendsButtonText]}>
+                    {buttonState.label}
+                  </Text>
+                </Pressable>
+              ) : buttonState.type === 'sent' ? (
+                <Button
+                  title={buttonState.label}
+                  variant="secondary"
+                  onPress={() => handleCancelRequest(buttonState.requestId)}
+                />
+              ) : (
+                <Button
+                  title={buttonState.label}
+                  onPress={() => handleSendRequest(item._id)}
+                />
+              )}
             </View>
-            <Button
-              title="Invite"
-              onPress={() => handleSendRequest(item._id)}
-            />
-          </View>
-        )}
+          );
+        }}
         keyExtractor={item => item._id}
         ListEmptyComponent={
           searchQuery.length >= 2 ? (
