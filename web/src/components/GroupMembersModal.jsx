@@ -56,7 +56,7 @@ export const GroupMembersModal = ({ isOpen, group, currentUserId, isAdmin, onClo
 
     try {
       setLoading(true);
-      const response = await groupAPI.addMembers(group._id, selectedMembers);
+      const response = await groupAPI.addMembers(group._id, { memberIds: selectedMembers });
       onMembersUpdate?.(response.data);
       setShowAddMembers(false);
       setSelectedMembers([]);
