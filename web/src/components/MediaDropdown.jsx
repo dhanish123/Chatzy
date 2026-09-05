@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { RiAttachmentLine } from 'react-icons/ri';
-import { MdImage, MdAudioFile } from 'react-icons/md';
-import { AiOutlineFile } from 'react-icons/ai';
+import { MdImage } from 'react-icons/md';
 
 const FILE_SIZE_LIMITS = {
   image: 10, // MB
@@ -30,24 +29,15 @@ export const MediaDropdown = ({ onFileSelect, isUploading }) => {
     }
   }, [showDropdown]);
 
-  const validateFileSize = (file, type) => {
+  const validateFileSize = (file) => {
     let maxSize;
     
-    // For photo-video type
-    if (type === 'photo-video') {
-      maxSize = file.type.startsWith('video/') 
-        ? FILE_SIZE_LIMITS.video * 1024 * 1024
-        : FILE_SIZE_LIMITS.image * 1024 * 1024;
-    } 
-    // For files type - allow images/videos too
-    else {
-      if (file.type.startsWith('image/')) {
-        maxSize = FILE_SIZE_LIMITS.image * 1024 * 1024;
-      } else if (file.type.startsWith('video/')) {
-        maxSize = FILE_SIZE_LIMITS.video * 1024 * 1024;
-      } else {
-        maxSize = FILE_SIZE_LIMITS.file * 1024 * 1024;
-      }
+    if (file.type.startsWith('image/')) {
+      maxSize = FILE_SIZE_LIMITS.image * 1024 * 1024;
+    } else if (file.type.startsWith('video/')) {
+      maxSize = FILE_SIZE_LIMITS.video * 1024 * 1024;
+    } else {
+      maxSize = FILE_SIZE_LIMITS.file * 1024 * 1024;
     }
 
     if (file.size > maxSize) {
@@ -62,12 +52,12 @@ export const MediaDropdown = ({ onFileSelect, isUploading }) => {
     const file = e.target.files?.[0];
     if (file) {
       setError('');
-      if (validateFileSize(file, uploadType)) {
-        // For photo/video button, upload directly without preview
-        if (uploadType === 'photo-video') {
+      if (validateFileSize(file)) {
+        // For images/videos, upload directly without preview
+        if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
           onFileSelect(file, true); // true = skipPreview
         } else {
-          // For files button, show preview
+          // For other files, show preview
           onFileSelect(file, false);
         }
         setShowDropdown(false);
@@ -75,14 +65,8 @@ export const MediaDropdown = ({ onFileSelect, isUploading }) => {
     }
   };
 
-  const triggerPhotoVideoUpload = () => {
-    setUploadType('photo-video');
-    setError('');
-    fileInputRef.current?.click();
-  };
-
-  const triggerFileUpload = () => {
-    setUploadType('file');
+  const triggerMediaUpload = () => {
+    setUploadType('media');
     setError('');
     fileInputRef.current?.click();
   };
@@ -103,11 +87,7 @@ export const MediaDropdown = ({ onFileSelect, isUploading }) => {
         type="file"
         onChange={handleFileInput}
         className="hidden"
-        accept={
-          uploadType === 'photo-video'
-            ? 'image/*,video/*'
-            : 'image/*,video/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.zip,.rar'
-        }
+        accept="image/*,video/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.zip,.rar"
       />
 
       {showDropdown && (
@@ -119,24 +99,12 @@ export const MediaDropdown = ({ onFileSelect, isUploading }) => {
               </div>
             )}
 
-            {/* Photo & Video Option */}
+            {/* Photos, Videos & Files Option */}
             <button
-              onClick={triggerPhotoVideoUpload}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-blue-50 text-left border-b border-gray-200 transition-colors"
-            >
-              <MdImage size={20} className="text-blue-600" />
-              <div>
-                <p className="font-medium text-gray-800">Photo & Video</p>
-                <p className="text-xs text-gray-500">Images: max 10MB, Videos: max 100MB</p>
-              </div>
-            </button>
-
-            {/* Files Option */}
-            <button
-              onClick={triggerFileUpload}
+              onClick={triggerMediaUpload}
               className="w-full flex items-center gap-3 px-4 py-3 hover:bg-blue-50 text-left transition-colors"
             >
-              <AiOutlineFile size={20} className="text-green-600" />
+              <MdImage size={20} className="text-blue-600" />
               <div>
                 <p className="font-medium text-gray-800">Photos, Videos & Files</p>
                 <p className="text-xs text-gray-500">Images, videos, documents & all files</p>
