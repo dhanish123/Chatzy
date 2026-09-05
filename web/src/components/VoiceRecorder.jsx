@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { BsMicFill, BsStop, RiSendPlaneFill, RiCloseLine } from 'react-icons/bs';
-import { RiSendPlaneFill, RiCloseLine } from 'react-icons/ri';
+import { BsStop } from 'react-icons/bs';
+import { RiCloseLine } from 'react-icons/ri';
 
 export const VoiceRecorder = ({ onSend, onCancel }) => {
   const [isRecording, setIsRecording] = useState(false);
