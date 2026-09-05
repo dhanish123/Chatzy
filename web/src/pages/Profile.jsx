@@ -37,6 +37,11 @@ export const Profile = () => {
       
       // Update user with new profile image
       setUser(response.data);
+      
+      // Force a fresh fetch of the profile to ensure UI updates
+      const freshProfile = await userAPI.getProfile();
+      setUser(freshProfile.data);
+      
       setImageTimestamp(Date.now());
       setMessage('Profile image updated');
       setTimeout(() => setMessage(''), 3000);
