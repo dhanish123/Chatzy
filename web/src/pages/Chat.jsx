@@ -13,7 +13,7 @@ import { Loader } from '../components/Loader.jsx';
 export const Chat = () => {
   const { user, token } = useAuthStore();
   const { conversations, selectedConversation, setConversations, setSelectedConversation } = useChatStore();
-  const { groups, setGroups } = useGroupStore();
+  const { groups, selectedGroup, setGroups, setSelectedGroup } = useGroupStore();
   const { friends } = useFriendStore();
   const [loading, setLoading] = useState(true);
 
@@ -52,7 +52,7 @@ export const Chat = () => {
     };
 
     loadData();
-  }, [setConversations, setGroups, setSelectedConversation, setSelectedGroup]);
+  }, []); // Only run on mount
 
   // Initialize socket and listen for friend acceptance events
   useEffect(() => {

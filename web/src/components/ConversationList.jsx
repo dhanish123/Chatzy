@@ -25,7 +25,7 @@ export const ConversationList = ({ searchQuery = '' }) => {
         );
       }
     }
-  }, [conversations, selectedConversation, setSelectedConversation]);
+  }, [conversations.length, selectedConversation]);
 
   if (conversations.length === 0) {
     return <EmptyState title="No conversations" description="Start a conversation with a friend" icon={LuMessageSquare} />;
