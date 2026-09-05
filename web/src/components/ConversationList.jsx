@@ -56,6 +56,8 @@ export const ConversationList = ({ searchQuery = '' }) => {
                     ? '🎥 Video'
                     : conv.lastMessage?.mediaType === 'file'
                     ? '📄 File'
+                    : conv.lastMessage?.mediaType === 'application/pdf'
+                    ? '📕 PDF'
                     : conv.lastMessage?.content || 'No messages'}
                 </p>
               </div>

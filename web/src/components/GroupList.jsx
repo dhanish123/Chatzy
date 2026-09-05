@@ -28,7 +28,19 @@ export const GroupList = () => {
               <Avatar src={group.image} initials={group.name[0]} size="md" />
               <div className="flex-1 min-w-0">
                 <p className="font-medium">{group.name}</p>
-                <p className="text-sm text-gray-500 truncate">{group.lastMessage?.content || 'No messages'}</p>
+                <p className="text-sm text-gray-500 truncate">
+                  {group.lastMessage?.mediaType === 'audio' 
+                    ? '🎙️ Audio message'
+                    : group.lastMessage?.mediaType === 'image'
+                    ? '📷 Image'
+                    : group.lastMessage?.mediaType === 'video'
+                    ? '🎥 Video'
+                    : group.lastMessage?.mediaType === 'file'
+                    ? '📄 File'
+                    : group.lastMessage?.mediaType === 'application/pdf'
+                    ? '📕 PDF'
+                    : group.lastMessage?.content || 'No messages'}
+                </p>
               </div>
             </div>
             {unreadCount > 0 && selectedGroup?._id !== group._id && (
