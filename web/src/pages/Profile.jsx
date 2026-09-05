@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore.js';
-import { userAPI, getImageUrl } from '../services/api.js';
+import { userAPI } from '../services/api.js';
 import { Button } from '../components/Button.jsx';
 import { Input } from '../components/Input.jsx';
 import { Avatar } from '../components/Avatar.jsx';
@@ -35,13 +35,8 @@ export const Profile = () => {
       setLoading(true);
       const response = await userAPI.uploadProfileImage(file);
       
-      // Update user with cache-busting timestamp
-      const updatedUser = {
-        ...response.data,
-        profileImage: response.data.profileImage ? `${response.data.profileImage}?t=${Date.now()}` : null
-      };
-      
-      setUser(updatedUser);
+      // Update user with new profile image
+      setUser(response.data);
       setImageTimestamp(Date.now());
       setMessage('Profile image updated');
       setTimeout(() => setMessage(''), 3000);
@@ -66,7 +61,7 @@ export const Profile = () => {
           <label className="cursor-pointer group">
             <div className="relative">
               <Avatar 
-                src={user?.profileImage ? `${user.profileImage}?t=${imageTimestamp}` : ''} 
+                src={user?.profileImage || ''} 
                 initials={user?.username?.[0]} 
                 size="xl" 
               />
