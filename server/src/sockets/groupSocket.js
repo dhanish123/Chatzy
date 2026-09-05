@@ -1,3 +1,5 @@
+import { Message } from '../models/Message.js';
+
 export const handleGroupEvents = (io, socket) => {
   socket.on('joinGroup', (groupId) => {
     socket.join(`group:${groupId}`);
@@ -14,14 +16,36 @@ export const handleGroupEvents = (io, socket) => {
     socket.to(`group:${groupId}`).emit('groupNewMessage', message);
   });
 
-  socket.on('groupMessageDelivered', (data) => {
+  socket.on('groupMessageDelivered', async (data) => {
     const { groupId, messageId } = data;
-    socket.to(`group:${groupId}`).emit('groupMessageDelivered', { messageId });
+    try {
+      const message = await Message.findByIdAndUpdate(
+        messageId,
+        { status: 'delivered' },
+        { new: true }
+      );
+      io.to(`group:${groupId}`).emit('messageStatusUpdated', { messageId, status: 'delivered' });
+    } catch (error) {
+      console.error('Error updating group message status:', error);
+    }
   });
 
-  socket.on('groupMessageRead', (data) => {
+  socket.on('groupMessageRead', async (data) => {
     const { groupId, messageId } = data;
-    socket.to(`group:${groupId}`).emit('groupMessageRead', { messageId, userId: socket.userId });
+    try {
+      const message = await Message.findById(messageId);
+      if (message) {
+        const readBy = message.readBy.find(r => r.userId.toString() === socket.userId.toString());
+        if (!readBy) {
+          message.readBy.push({ userId: socket.userId, readAt: new Date() });
+          message.status = 'read';
+          await message.save();
+        }
+        io.to(`group:${groupId}`).emit('messageStatusUpdated', { messageId, status: 'read' });
+      }
+    } catch (error) {
+      console.error('Error marking group message as read:', error);
+    }
   });
 
   socket.on('groupMessageUpdated', (data) => {

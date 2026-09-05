@@ -60,7 +60,7 @@ export const ConversationList = ({ searchQuery = '' }) => {
                 </p>
               </div>
             </div>
-            {otherUser.unreadCount > 0 && (
+            {otherUser.unreadCount > 0 && selectedConversation?._id !== conv._id && (
               <span className="bg-blue-600 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
                 {otherUser.unreadCount}
               </span>

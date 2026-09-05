@@ -96,7 +96,12 @@ export const CreateGroupModal = ({ isOpen, onClose, onGroupCreated }) => {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Create Group">
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      title="Create Group"
+      showFooter={false}
+    >
       <div className="space-y-4">
         {error && (
           <div className="bg-red-50 text-red-700 p-3 rounded text-sm">

@@ -3,9 +3,17 @@ import { RiAttachmentLine } from 'react-icons/ri';
 import { MdImage, MdAudioFile } from 'react-icons/md';
 import { AiOutlineFile } from 'react-icons/ai';
 
+const FILE_SIZE_LIMITS = {
+  image: 10, // MB
+  video: 100,
+  audio: 50,
+  file: 50
+};
+
 export const MediaDropdown = ({ onFileSelect, isUploading }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [uploadType, setUploadType] = useState(null);
+  const [error, setError] = useState('');
   const fileInputRef = useRef(null);
   const dropdownRef = useRef(null);
 
@@ -22,21 +30,44 @@ export const MediaDropdown = ({ onFileSelect, isUploading }) => {
     }
   }, [showDropdown]);
 
+  const validateFileSize = (file, type) => {
+    let maxSize;
+    if (type === 'photo-video') {
+      maxSize = file.type.startsWith('video/') 
+        ? FILE_SIZE_LIMITS.video * 1024 * 1024
+        : FILE_SIZE_LIMITS.image * 1024 * 1024;
+    } else {
+      maxSize = FILE_SIZE_LIMITS.file * 1024 * 1024;
+    }
+
+    if (file.size > maxSize) {
+      const maxSizeMB = maxSize / (1024 * 1024);
+      setError(`File size must be less than ${maxSizeMB}MB`);
+      return false;
+    }
+    return true;
+  };
+
   const handleFileInput = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      onFileSelect(file);
-      setShowDropdown(false);
+      setError('');
+      if (validateFileSize(file, uploadType)) {
+        onFileSelect(file);
+        setShowDropdown(false);
+      }
     }
   };
 
   const triggerPhotoVideoUpload = () => {
     setUploadType('photo-video');
+    setError('');
     fileInputRef.current?.click();
   };
 
   const triggerFileUpload = () => {
     setUploadType('file');
+    setError('');
     fileInputRef.current?.click();
   };
 
@@ -66,6 +97,12 @@ export const MediaDropdown = ({ onFileSelect, isUploading }) => {
       {showDropdown && (
         <div className="absolute bottom-12 left-0 z-50 bg-white border border-gray-300 rounded-lg shadow-lg">
           <div className="min-w-48">
+            {error && (
+              <div className="px-4 py-2 bg-red-50 border-b border-red-200">
+                <p className="text-xs text-red-600">{error}</p>
+              </div>
+            )}
+
             {/* Photo & Video Option */}
             <button
               onClick={triggerPhotoVideoUpload}
@@ -74,7 +111,7 @@ export const MediaDropdown = ({ onFileSelect, isUploading }) => {
               <MdImage size={20} className="text-blue-600" />
               <div>
                 <p className="font-medium text-gray-800">Photo & Video</p>
-                <p className="text-xs text-gray-500">Send images or videos</p>
+                <p className="text-xs text-gray-500">Images: max 10MB, Videos: max 100MB</p>
               </div>
             </button>
 
@@ -86,7 +123,7 @@ export const MediaDropdown = ({ onFileSelect, isUploading }) => {
               <AiOutlineFile size={20} className="text-green-600" />
               <div>
                 <p className="font-medium text-gray-800">Files</p>
-                <p className="text-xs text-gray-500">Send documents or files</p>
+                <p className="text-xs text-gray-500">Documents & files: max 50MB</p>
               </div>
             </button>
           </div>

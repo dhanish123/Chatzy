@@ -8,6 +8,7 @@ import { VoiceRecorder } from '../components/VoiceRecorder.js';
 import { EmojiPickerModal } from '../components/EmojiPickerModal.js';
 import { MediaSelector } from '../components/MediaSelector.js';
 import { ChatHeaderMenu } from '../components/ChatHeaderMenu.js';
+import { TypingIndicator } from '../components/TypingIndicator.js';
 import { MaterialIcons } from '@expo/vector-icons';
 
 const styles = StyleSheet.create({
@@ -148,7 +149,9 @@ export const ChatScreen = () => {
   const [editingMessage, setEditingMessage] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
   const [blockStatus, setBlockStatus] = useState({ blocked: false, blockedBy: false });
+  const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
   const flatListRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
   const socket = getSocket();
 
   const isGroup = !!selectedGroup;
@@ -170,8 +173,23 @@ export const ChatScreen = () => {
         const response = await messageAPI.getMessages(conversationId);
         setMessages(response.data);
 
-        if (!isGroup) {
+        if (!isGroup && selectedConversation) {
           await conversationAPI.markAsRead(conversationId);
+        }
+
+        // Mark all received messages as read
+        if (response.data && response.data.length > 0) {
+          response.data.forEach((msg) => {
+            if (!msg.isSystemMessage && msg.senderId._id !== user?._id) {
+              if (socket) {
+                socket.emit(isGroup ? 'groupMessageRead' : 'messageRead', {
+                  messageId: msg._id,
+                  conversationId,
+                  groupId: isGroup ? conversationId : undefined
+                });
+              }
+            }
+          });
         }
       } catch (error) {
         console.error('Error loading messages:', error);
@@ -181,20 +199,87 @@ export const ChatScreen = () => {
     };
 
     loadMessages();
-    joinConversation(conversationId);
 
     if (socket) {
-      const handleNewMessage = (msg) => {
-        addMessage(msg);
-      };
+      if (isGroup) {
+        socket.emit('joinGroup', conversationId);
+        
+        const handleGroupNewMessage = (msg) => {
+          addMessage(msg);
+          // Mark as read immediately if not own message
+          if (msg.senderId._id !== user?._id && !msg.isSystemMessage) {
+            socket.emit('groupMessageRead', {
+              messageId: msg._id,
+              groupId: conversationId
+            });
+          }
+        };
 
-      socket.on('newMessage', handleNewMessage);
-      return () => {
-        socket.off('newMessage', handleNewMessage);
-        leaveConversation(conversationId);
-      };
+        const handleMessageStatusUpdated = (data) => {
+          updateMessage(data.messageId, { status: data.status });
+        };
+
+        const handleGroupTyping = () => {
+          setIsOtherUserTyping(true);
+        };
+
+        const handleGroupStopTyping = () => {
+          setIsOtherUserTyping(false);
+        };
+
+        socket.on('groupNewMessage', handleGroupNewMessage);
+        socket.on('messageStatusUpdated', handleMessageStatusUpdated);
+        socket.on('userTypingGroup', handleGroupTyping);
+        socket.on('userStoppedTypingGroup', handleGroupStopTyping);
+        
+        return () => {
+          socket.off('groupNewMessage', handleGroupNewMessage);
+          socket.off('messageStatusUpdated', handleMessageStatusUpdated);
+          socket.off('userTypingGroup', handleGroupTyping);
+          socket.off('userStoppedTypingGroup', handleGroupStopTyping);
+          socket.emit('leaveGroup', conversationId);
+        };
+      } else {
+        socket.emit('joinConversation', conversationId);
+        
+        const handleNewMessage = (msg) => {
+          addMessage(msg);
+          // Mark as read immediately if not own message
+          if (msg.senderId._id !== user?._id && !msg.isSystemMessage) {
+            socket.emit('messageRead', {
+              messageId: msg._id,
+              conversationId
+            });
+          }
+        };
+
+        const handleMessageStatusUpdated = (data) => {
+          updateMessage(data.messageId, { status: data.status });
+        };
+
+        const handleUserTyping = () => {
+          setIsOtherUserTyping(true);
+        };
+
+        const handleUserStopTyping = () => {
+          setIsOtherUserTyping(false);
+        };
+
+        socket.on('newMessage', handleNewMessage);
+        socket.on('messageStatusUpdated', handleMessageStatusUpdated);
+        socket.on('userTyping', handleUserTyping);
+        socket.on('userStoppedTyping', handleUserStopTyping);
+        
+        return () => {
+          socket.off('newMessage', handleNewMessage);
+          socket.off('messageStatusUpdated', handleMessageStatusUpdated);
+          socket.off('userTyping', handleUserTyping);
+          socket.off('userStoppedTyping', handleUserStopTyping);
+          socket.emit('leaveConversation', conversationId);
+        };
+      }
     }
-  }, [conversationId]);
+  }, [conversationId, isGroup, selectedConversation, socket, addMessage, updateMessage, user]);
 
   useEffect(() => {
     flatListRef.current?.scrollToEnd({ animated: true });
@@ -221,19 +306,47 @@ export const ChatScreen = () => {
         const response = await messageAPI.send({
           conversationId,
           content: message,
-          replyTo: replyingTo?._id
+          replyTo: replyingTo?._id,
+          groupId: isGroup ? conversationId : undefined
         });
         addMessage(response.data);
         setMessage('');
         setReplyingTo(null);
 
         if (socket) {
-          socket.emit('messageDelivered', { messageId: response.data._id, conversationId });
+          if (isGroup) {
+            socket.emit('groupMessageDelivered', { messageId: response.data._id, groupId: conversationId });
+            socket.emit('groupStopTyping', { groupId: conversationId });
+          } else {
+            socket.emit('messageDelivered', { messageId: response.data._id, conversationId });
+            socket.emit('stopTyping', { conversationId });
+          }
         }
       } catch (error) {
         console.error('Error sending message:', error);
       }
     }
+  };
+
+  const handleInputChange = (text) => {
+    setMessage(text);
+
+    // Emit typing event
+    if (text.trim() && socket) {
+      socket.emit(isGroup ? 'groupTyping' : 'typing', { conversationId });
+    }
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Set new timeout for stop typing
+    typingTimeoutRef.current = setTimeout(() => {
+      if (socket) {
+        socket.emit(isGroup ? 'groupStopTyping' : 'stopTyping', { conversationId });
+      }
+    }, 3000);
   };
 
   const handleEditMessage = (msg) => {
@@ -267,13 +380,18 @@ export const ChatScreen = () => {
         content: '',
         mediaUrl: response.data.url,
         mediaType: 'audio',
-        replyTo: replyingTo?._id
+        replyTo: replyingTo?._id,
+        groupId: isGroup ? conversationId : undefined
       });
       addMessage(msgResponse.data);
       setReplyingTo(null);
 
       if (socket) {
-        socket.emit('messageDelivered', { messageId: msgResponse.data._id, conversationId });
+        if (isGroup) {
+          socket.emit('groupMessageDelivered', { messageId: msgResponse.data._id, groupId: conversationId });
+        } else {
+          socket.emit('messageDelivered', { messageId: msgResponse.data._id, conversationId });
+        }
       }
     } catch (error) {
       console.error('Error uploading voice:', error);
@@ -299,13 +417,18 @@ export const ChatScreen = () => {
         content: '',
         mediaUrl: response.data.url,
         mediaType: media.type === 'file' ? 'file' : media.type,
-        replyTo: replyingTo?._id
+        replyTo: replyingTo?._id,
+        groupId: isGroup ? conversationId : undefined
       });
       addMessage(msgResponse.data);
       setReplyingTo(null);
 
       if (socket) {
-        socket.emit('messageDelivered', { messageId: msgResponse.data._id, conversationId });
+        if (isGroup) {
+          socket.emit('groupMessageDelivered', { messageId: msgResponse.data._id, groupId: conversationId });
+        } else {
+          socket.emit('messageDelivered', { messageId: msgResponse.data._id, conversationId });
+        }
       }
     } catch (error) {
       console.error('Error uploading media:', error);
@@ -315,6 +438,10 @@ export const ChatScreen = () => {
   };
 
   const renderMessage = ({ item }) => {
+    if (item._id === 'typing-indicator') {
+      return <TypingIndicator />;
+    }
+
     const isOwn = item.senderId._id === user?._id;
     const canEdit = isOwn && !item.isDeleted && Date.now() - new Date(item.createdAt).getTime() < 10 * 60 * 1000;
     const canDelete = isOwn && !item.isDeleted && Date.now() - new Date(item.createdAt).getTime() < 10 * 60 * 1000;
@@ -431,7 +558,7 @@ export const ChatScreen = () => {
 
       <FlatList
         ref={flatListRef}
-        data={messages}
+        data={isOtherUserTyping ? [...messages, { _id: 'typing-indicator' }] : messages}
         renderItem={renderMessage}
         keyExtractor={item => item._id}
         style={styles.messagesList}
@@ -528,7 +655,7 @@ export const ChatScreen = () => {
                 style={[styles.input, (blockStatus.blocked || blockStatus.blockedBy) && { backgroundColor: '#f3f4f6' }]}
                 placeholder={blockStatus.blocked ? "You blocked this user" : blockStatus.blockedBy ? "This user has blocked you" : editingMessage ? "Edit message..." : "Type a message..."}
                 value={message}
-                onChangeText={setMessage}
+                onChangeText={handleInputChange}
                 multiline
                 maxLength={1000}
                 placeholderTextColor="#d1d5db"

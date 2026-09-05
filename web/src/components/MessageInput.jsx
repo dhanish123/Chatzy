@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { RiSendPlaneFill, RiCloseLine } from 'react-icons/ri';
 import { Input } from './Input.jsx';
 import { Button } from './Button.jsx';
@@ -16,7 +16,9 @@ export const MessageInput = ({
   replyingTo,
   onCancelReply,
   onSetReply,
-  isBlocked
+  isBlocked,
+  onTyping,
+  onStopTyping
 }) => {
   const [message, setMessage] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -24,6 +26,28 @@ export const MessageInput = ({
   const [selectedFile, setSelectedFile] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
   const fileInputRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
+
+  const handleMessageChange = (e) => {
+    const newMessage = e.target.value;
+    setMessage(newMessage);
+
+    // Emit typing event
+    if (newMessage.trim() && !typingTimeoutRef.current) {
+      onTyping?.();
+    }
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Set new timeout for stop typing
+    typingTimeoutRef.current = setTimeout(() => {
+      onStopTyping?.();
+      typingTimeoutRef.current = null;
+    }, 3000);
+  };
 
   const handleSend = async () => {
     if (editingMessage) {
@@ -149,7 +173,7 @@ export const MessageInput = ({
             type="text"
             placeholder={isBlocked ? "This user has blocked you" : (editingMessage ? "Edit message..." : "Type a message...")}
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={handleMessageChange}
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
             disabled={uploading || isBlocked}

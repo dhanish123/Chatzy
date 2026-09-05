@@ -9,6 +9,7 @@ import { MessageInput } from './MessageInput.jsx';
 import { ChatHeaderMenu } from './ChatHeaderMenu.jsx';
 import { GroupHeaderMenu } from './GroupHeaderMenu.jsx';
 import { SystemMessage } from './SystemMessage.jsx';
+import { TypingIndicator } from './TypingIndicator.jsx';
 import { Loader } from './Loader.jsx';
 import { Avatar } from './Avatar.jsx';
 
@@ -23,6 +24,9 @@ export const ChatWindow = () => {
   const [isUserBlocked, setIsUserBlocked] = useState(false);
   const [blockStatus, setBlockStatus] = useState({ blocked: false, blockedBy: false });
   const [imageTimestamp, setImageTimestamp] = useState(Date.now());
+  const [isTyping, setIsTyping] = useState(false);
+  const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
+  const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
   const socket = getSocket();
 
@@ -57,6 +61,21 @@ export const ChatWindow = () => {
         if (!isGroup && selectedConversation) {
           await conversationAPI.markAsRead(conversationId);
         }
+
+        // Mark all received messages as read
+        if (response.data && response.data.length > 0) {
+          response.data.forEach((msg) => {
+            if (!msg.isSystemMessage && msg.senderId._id !== user?._id) {
+              if (socket) {
+                socket.emit(isGroup ? 'groupMessageRead' : 'messageRead', {
+                  messageId: msg._id,
+                  conversationId,
+                  groupId: isGroup ? conversationId : undefined
+                });
+              }
+            }
+          });
+        }
       } catch (error) {
         console.error('Error loading messages:', error);
       } finally {
@@ -72,13 +91,40 @@ export const ChatWindow = () => {
         
         const handleGroupNewMessage = (message) => {
           addMessage(message);
+          // Mark as read immediately if not own message
+          if (message.senderId._id !== user?._id && !message.isSystemMessage) {
+            socket.emit('groupMessageRead', {
+              messageId: message._id,
+              groupId: conversationId
+            });
+          }
           messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         };
 
+        const handleMessageStatusUpdated = (data) => {
+          updateMessage(data.messageId, { status: data.status });
+        };
+
+        const handleGroupTyping = () => {
+          setIsOtherUserTyping(true);
+        };
+
+        const handleGroupStopTyping = () => {
+          setIsOtherUserTyping(false);
+        };
+
         socket.on('groupNewMessage', handleGroupNewMessage);
+        socket.on('groupMessageRead', handleMessageStatusUpdated);
+        socket.on('messageStatusUpdated', handleMessageStatusUpdated);
+        socket.on('userTypingGroup', handleGroupTyping);
+        socket.on('userStoppedTypingGroup', handleGroupStopTyping);
         
         return () => {
           socket.off('groupNewMessage', handleGroupNewMessage);
+          socket.off('groupMessageRead', handleMessageStatusUpdated);
+          socket.off('messageStatusUpdated', handleMessageStatusUpdated);
+          socket.off('userTypingGroup', handleGroupTyping);
+          socket.off('userStoppedTypingGroup', handleGroupStopTyping);
           socket.emit('leaveGroup', conversationId);
         };
       } else {
@@ -86,18 +132,43 @@ export const ChatWindow = () => {
         
         const handleNewMessage = (message) => {
           addMessage(message);
+          // Mark as read immediately if not own message
+          if (message.senderId._id !== user?._id && !message.isSystemMessage) {
+            socket.emit('messageRead', {
+              messageId: message._id,
+              conversationId
+            });
+          }
           messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         };
 
+        const handleMessageStatusUpdated = (data) => {
+          updateMessage(data.messageId, { status: data.status });
+        };
+
+        const handleUserTyping = () => {
+          setIsOtherUserTyping(true);
+        };
+
+        const handleUserStopTyping = () => {
+          setIsOtherUserTyping(false);
+        };
+
         socket.on('newMessage', handleNewMessage);
+        socket.on('messageStatusUpdated', handleMessageStatusUpdated);
+        socket.on('userTyping', handleUserTyping);
+        socket.on('userStoppedTyping', handleUserStopTyping);
         
         return () => {
           socket.off('newMessage', handleNewMessage);
+          socket.off('messageStatusUpdated', handleMessageStatusUpdated);
+          socket.off('userTyping', handleUserTyping);
+          socket.off('userStoppedTyping', handleUserStopTyping);
           socket.emit('leaveConversation', conversationId);
         };
       }
     }
-  }, [conversationId, isGroup, selectedConversation, socket, addMessage]);
+  }, [conversationId, isGroup, selectedConversation, socket, addMessage, updateMessage, user]);
 
   useEffect(() => {
     // Scroll to bottom when messages load or change
@@ -155,15 +226,37 @@ export const ChatWindow = () => {
         content,
         mediaUrl,
         mediaType,
-        replyTo
+        replyTo,
+        groupId: isGroup ? conversationId : undefined
       });
       addMessage(response.data);
 
       if (socket) {
-        socket.emit('messageDelivered', { messageId: response.data._id, conversationId });
+        if (isGroup) {
+          socket.emit('groupMessageDelivered', { messageId: response.data._id, groupId: conversationId });
+        } else {
+          socket.emit('messageDelivered', { messageId: response.data._id, conversationId });
+        }
+        // Stop typing when message is sent
+        socket.emit(isGroup ? 'groupStopTyping' : 'stopTyping', { conversationId });
+        setIsTyping(false);
       }
     } catch (error) {
       console.error('Error sending message:', error);
+    }
+  };
+
+  const handleTyping = () => {
+    if (!isTyping && socket) {
+      setIsTyping(true);
+      socket.emit(isGroup ? 'groupTyping' : 'typing', { conversationId });
+    }
+  };
+
+  const handleStopTyping = () => {
+    if (isTyping && socket) {
+      setIsTyping(false);
+      socket.emit(isGroup ? 'groupStopTyping' : 'stopTyping', { conversationId });
     }
   };
 
@@ -291,6 +384,11 @@ export const ChatWindow = () => {
             )
           )
         )}
+        {isOtherUserTyping && (
+          <div className="flex items-start mb-3">
+            <TypingIndicator />
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
@@ -329,6 +427,8 @@ export const ChatWindow = () => {
           onCancelReply={() => setReplyingTo(null)}
           onSetReply={setReplyingTo}
           isBlocked={blockStatus.blockedBy}
+          onTyping={handleTyping}
+          onStopTyping={handleStopTyping}
         />
       )}
     </div>
