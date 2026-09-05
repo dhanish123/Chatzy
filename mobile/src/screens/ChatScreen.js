@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, FlatList, StyleSheet, TextInput, Pressable, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Image } from 'react-native';
+import * as FileSystem from 'expo-file-system';
 import { useChatStore } from '../stores/chatStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { messageAPI, conversationAPI, uploadAPI, blockAPI, groupAPI, getImageUrl } from '../services/api.js';
@@ -7,7 +8,9 @@ import { getSocket, joinConversation, leaveConversation } from '../services/sock
 import { VoiceRecorder } from '../components/VoiceRecorder.js';
 import { EmojiPickerModal } from '../components/EmojiPickerModal.js';
 import { MediaSelector } from '../components/MediaSelector.js';
+import { MediaPreviewModal } from '../components/MediaPreviewModal.js';
 import { ChatHeaderMenu } from '../components/ChatHeaderMenu.js';
+import { GroupHeaderMenu } from '../components/GroupHeaderMenu.js';
 import { TypingIndicator } from '../components/TypingIndicator.js';
 import { MaterialIcons } from '@expo/vector-icons';
 
@@ -141,7 +144,7 @@ const styles = StyleSheet.create({
 
 export const ChatScreen = () => {
   const { user } = useAuthStore();
-  const { selectedConversation, selectedGroup, messages, setMessages, addMessage, updateMessage } = useChatStore();
+  const { selectedConversation, selectedGroup, messages, setMessages, addMessage, updateMessage, setSelectedGroup } = useChatStore();
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
@@ -150,6 +153,9 @@ export const ChatScreen = () => {
   const [replyingTo, setReplyingTo] = useState(null);
   const [blockStatus, setBlockStatus] = useState({ blocked: false, blockedBy: false });
   const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
+  const [previewMedia, setPreviewMedia] = useState(null);
+  const [previewFileSize, setPreviewFileSize] = useState(null);
+  const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
   const flatListRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const socket = getSocket();
@@ -198,7 +204,20 @@ export const ChatScreen = () => {
       }
     };
 
+    // Fetch block status for private conversations
+    const checkBlockStatus = async () => {
+      if (!isGroup && otherUser) {
+        try {
+          const response = await blockAPI.isUserBlocked(otherUser._id);
+          setBlockStatus({ ...blockStatus, blocked: response.data.isBlocked });
+        } catch (error) {
+          console.warn('Could not check block status:', error);
+        }
+      }
+    };
+
     loadMessages();
+    checkBlockStatus();
 
     if (socket) {
       if (isGroup) {
@@ -265,16 +284,32 @@ export const ChatScreen = () => {
           setIsOtherUserTyping(false);
         };
 
+        const handleBlockUser = (data) => {
+          if (data.blockedUserId === otherUser._id) {
+            setBlockStatus(prev => ({ ...prev, blockedBy: true }));
+          }
+        };
+
+        const handleUnblockUser = (data) => {
+          if (data.unblockedUserId === otherUser._id) {
+            setBlockStatus(prev => ({ ...prev, blockedBy: false }));
+          }
+        };
+
         socket.on('newMessage', handleNewMessage);
         socket.on('messageStatusUpdated', handleMessageStatusUpdated);
         socket.on('userTyping', handleUserTyping);
         socket.on('userStoppedTyping', handleUserStopTyping);
+        socket.on('blockedYou', handleBlockUser);
+        socket.on('unblockedYou', handleUnblockUser);
         
         return () => {
           socket.off('newMessage', handleNewMessage);
           socket.off('messageStatusUpdated', handleMessageStatusUpdated);
           socket.off('userTyping', handleUserTyping);
           socket.off('userStoppedTyping', handleUserStopTyping);
+          socket.off('blockedYou', handleBlockUser);
+          socket.off('unblockedYou', handleUnblockUser);
           socket.emit('leaveConversation', conversationId);
         };
       }
@@ -401,22 +436,40 @@ export const ChatScreen = () => {
   };
 
   const handleMediaSelect = async (media) => {
+    try {
+      // Get file size
+      const fileInfo = await FileSystem.getInfoAsync(media.uri);
+      const fileSize = fileInfo.size || 0;
+      
+      // Show preview modal
+      setPreviewMedia(media);
+      setPreviewFileSize(fileSize);
+      setIsPreviewModalVisible(true);
+    } catch (error) {
+      console.error('Error getting media info:', error);
+      Alert.alert('Error', 'Failed to preview media');
+    }
+  };
+
+  const handleMediaConfirm = async () => {
+    if (!previewMedia) return;
+
     setIsUploading(true);
     try {
       let response;
-      if (media.type === 'image') {
-        response = await uploadAPI.image(media.uri);
-      } else if (media.type === 'video') {
-        response = await uploadAPI.video(media.uri);
-      } else if (media.type === 'file') {
-        response = await uploadAPI.file(media.uri);
+      if (previewMedia.type === 'image') {
+        response = await uploadAPI.image(previewMedia.uri);
+      } else if (previewMedia.type === 'video') {
+        response = await uploadAPI.video(previewMedia.uri);
+      } else if (previewMedia.type === 'file') {
+        response = await uploadAPI.file(previewMedia.uri);
       }
 
       const msgResponse = await messageAPI.send({
         conversationId,
         content: '',
         mediaUrl: response.data.url,
-        mediaType: media.type === 'file' ? 'file' : media.type,
+        mediaType: previewMedia.type === 'file' ? 'file' : previewMedia.type,
         replyTo: replyingTo?._id,
         groupId: isGroup ? conversationId : undefined
       });
@@ -430,11 +483,23 @@ export const ChatScreen = () => {
           socket.emit('messageDelivered', { messageId: msgResponse.data._id, conversationId });
         }
       }
+
+      // Close preview modal
+      setIsPreviewModalVisible(false);
+      setPreviewMedia(null);
+      setPreviewFileSize(null);
     } catch (error) {
       console.error('Error uploading media:', error);
+      Alert.alert('Error', 'Failed to upload media');
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleMediaCancel = () => {
+    setIsPreviewModalVisible(false);
+    setPreviewMedia(null);
+    setPreviewFileSize(null);
   };
 
   const renderMessage = ({ item }) => {
@@ -569,6 +634,17 @@ export const ChatScreen = () => {
             onUserBlocked={() => setBlockStatus({ ...blockStatus, blocked: true })}
           />
         )}
+        {isGroup && (
+          <GroupHeaderMenu
+            groupId={conversationId}
+            onGroupLeft={() => {
+              // Navigate back to chat list when leaving group
+              // This would be handled by the Navigation controller
+              // For now, clear the selected group
+              setSelectedGroup(null);
+            }}
+          />
+        )}
       </View>
 
       <FlatList
@@ -688,6 +764,15 @@ export const ChatScreen = () => {
           </View>
         )}
       </KeyboardAvoidingView>
+
+      <MediaPreviewModal
+        visible={isPreviewModalVisible}
+        media={previewMedia}
+        fileSize={previewFileSize}
+        onConfirm={handleMediaConfirm}
+        onCancel={handleMediaCancel}
+        loading={isUploading}
+      />
     </SafeAreaView>
   );
 };

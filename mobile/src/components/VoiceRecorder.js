@@ -1,7 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Animated, Alert } from 'react-native';
 import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
 import { MaterialIcons } from '@expo/vector-icons';
+
+const AUDIO_SIZE_LIMIT = 50 * 1024 * 1024; // 50 MB
+
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -136,6 +147,28 @@ export const VoiceRecorder = ({ onSend, onCancel }) => {
 
         if (durationIntervalRef.current) {
           clearInterval(durationIntervalRef.current);
+        }
+
+        // Validate file size
+        try {
+          const fileInfo = await FileSystem.getInfoAsync(uri);
+          const fileSize = fileInfo.size || 0;
+
+          if (fileSize > AUDIO_SIZE_LIMIT) {
+            Alert.alert(
+              'Audio Too Large',
+              `Maximum audio size: ${formatFileSize(AUDIO_SIZE_LIMIT)}\n\nYour recording: ${formatFileSize(fileSize)}`,
+              [
+                {
+                  text: 'OK',
+                  style: 'cancel'
+                }
+              ]
+            );
+            return;
+          }
+        } catch (err) {
+          console.warn('Could not validate audio file size:', err);
         }
 
         // Auto-send the audio
