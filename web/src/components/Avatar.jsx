@@ -23,15 +23,18 @@ export const Avatar = ({
     if (src.startsWith('http')) {
       imageUrl = src;
     } 
-    // If relative path starting with /, prepend API URL
+    // If relative path starting with /, prepend base URL (not API URL which includes /api)
     else if (src.startsWith('/')) {
+      // Extract base URL from VITE_API_URL by removing /api
       const apiUrl = import.meta.env.VITE_API_URL;
-      imageUrl = `${apiUrl}${src}`;
+      const baseUrl = apiUrl.replace('/api', '');
+      imageUrl = `${baseUrl}${src}`;
     }
-    // Otherwise prepend API URL with /
+    // Otherwise prepend base URL with /
     else {
       const apiUrl = import.meta.env.VITE_API_URL;
-      imageUrl = `${apiUrl}/${src}`;
+      const baseUrl = apiUrl.replace('/api', '');
+      imageUrl = `${baseUrl}/${src}`;
     }
   }
 
