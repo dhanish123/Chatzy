@@ -521,25 +521,40 @@ export const ChatScreen = () => {
     <SafeAreaView style={styles.container}>
       <View style={[styles.header, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          {!isGroup && otherUser && (
-            otherUser.profileImage ? (
-              <Image 
-                source={{ uri: getImageUrl(otherUser.profileImage) }}
-                style={styles.headerProfileImage}
-              />
-            ) : (
-              <View style={styles.headerProfileInitials}>
-                <Text style={styles.headerProfileInitialsText}>
-                  {otherUser.username?.[0]?.toUpperCase() || 'U'}
-                </Text>
-              </View>
-            )
-          )}
+          {/* Profile image or group image */}
+          {isGroup && selectedGroup?.image ? (
+            <Image 
+              source={{ uri: getImageUrl(selectedGroup.image) }}
+              style={styles.headerProfileImage}
+            />
+          ) : isGroup ? (
+            <View style={styles.headerProfileInitials}>
+              <Text style={styles.headerProfileInitialsText}>
+                {selectedGroup?.name?.[0]?.toUpperCase() || 'G'}
+              </Text>
+            </View>
+          ) : otherUser?.profileImage ? (
+            <Image 
+              source={{ uri: getImageUrl(otherUser.profileImage) }}
+              style={styles.headerProfileImage}
+            />
+          ) : !isGroup && otherUser ? (
+            <View style={styles.headerProfileInitials}>
+              <Text style={styles.headerProfileInitialsText}>
+                {otherUser.username?.[0]?.toUpperCase() || 'U'}
+              </Text>
+            </View>
+          ) : null}
+          
           <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>
               {isGroup ? selectedGroup?.name : otherUser?.username}
             </Text>
-            {!isGroup && otherUser && (
+            {isGroup && selectedGroup?.members ? (
+              <Text style={styles.headerSubtitle}>
+                {selectedGroup.members.length} {selectedGroup.members.length === 1 ? 'member' : 'members'}
+              </Text>
+            ) : !isGroup && otherUser && (
               <Text style={styles.headerSubtitle}>
                 {otherUser.isOnline ? 'Online' : `Last seen ${new Date(otherUser.lastSeen).toLocaleTimeString()}`}
               </Text>
