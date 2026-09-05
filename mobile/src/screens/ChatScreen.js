@@ -1,9 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, FlatList, StyleSheet, TextInput, Pressable, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TextInput, Pressable, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useChatStore } from '../stores/chatStore.js';
 import { useAuthStore } from '../stores/authStore.js';
-import { messageAPI, conversationAPI } from '../services/api.js';
+import { messageAPI, conversationAPI, uploadAPI } from '../services/api.js';
 import { getSocket, joinConversation, leaveConversation } from '../services/socket.js';
+import { VoiceRecorder } from '../components/VoiceRecorder.js';
+import { EmojiPickerModal } from '../components/EmojiPickerModal.js';
+import { MediaSelector } from '../components/MediaSelector.js';
+import { MaterialIcons } from '@expo/vector-icons';
 
 const styles = StyleSheet.create({
   container: {
@@ -67,9 +71,21 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
+    gap: 8,
+    backgroundColor: '#ffffff'
+  },
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 8
+  },
+  controlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    gap: 4
   },
   input: {
     flex: 1,
@@ -94,6 +110,11 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 18,
     fontWeight: 'bold'
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 8
   }
 });
 
@@ -102,6 +123,8 @@ export const ChatScreen = () => {
   const { selectedConversation, selectedGroup, messages, setMessages, addMessage } = useChatStore();
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const flatListRef = useRef(null);
   const socket = getSocket();
 
@@ -167,6 +190,62 @@ export const ChatScreen = () => {
     }
   };
 
+  const handleEmojiSelect = (emoji) => {
+    setMessage(prev => prev + emoji);
+  };
+
+  const handleVoiceRecordSend = async (audioUri) => {
+    setIsUploading(true);
+    try {
+      const response = await uploadAPI.audio(audioUri);
+      const msgResponse = await messageAPI.send({
+        conversationId,
+        content: '',
+        mediaUrl: response.data.url,
+        mediaType: 'audio'
+      });
+      addMessage(msgResponse.data);
+
+      if (socket) {
+        socket.emit('messageDelivered', { messageId: msgResponse.data._id, conversationId });
+      }
+    } catch (error) {
+      console.error('Error uploading voice:', error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleMediaSelect = async (media) => {
+    setIsUploading(true);
+    try {
+      let response;
+      if (media.type === 'image') {
+        response = await uploadAPI.image(media.uri);
+      } else if (media.type === 'video') {
+        response = await uploadAPI.video(media.uri);
+      } else if (media.type === 'file') {
+        response = await uploadAPI.file(media.uri);
+      }
+
+      const msgResponse = await messageAPI.send({
+        conversationId,
+        content: '',
+        mediaUrl: response.data.url,
+        mediaType: media.type === 'file' ? 'file' : media.type
+      });
+      addMessage(msgResponse.data);
+
+      if (socket) {
+        socket.emit('messageDelivered', { messageId: msgResponse.data._id, conversationId });
+      }
+    } catch (error) {
+      console.error('Error uploading media:', error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const renderMessage = ({ item }) => {
     const isOwn = item.senderId._id === user?._id;
 
@@ -211,20 +290,59 @@ export const ChatScreen = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={90}
       >
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Type a message..."
-            value={message}
-            onChangeText={setMessage}
-            multiline
-            maxLength={1000}
-            placeholderTextColor="#d1d5db"
+        {isRecording ? (
+          <VoiceRecorder
+            onSend={handleVoiceRecordSend}
+            onCancel={() => setIsRecording(false)}
           />
-          <Pressable style={styles.sendButton} onPress={handleSend}>
-            <Text style={styles.sendText}>›</Text>
-          </Pressable>
-        </View>
+        ) : (
+          <View style={styles.inputContainer}>
+            <View style={styles.controlsRow}>
+              <MediaSelector
+                onMediaSelect={handleMediaSelect}
+                isUploading={isUploading}
+              />
+              <EmojiPickerModal onEmojiSelect={handleEmojiSelect} />
+              <Pressable
+                onPress={() => setIsRecording(true)}
+                disabled={isUploading}
+                style={{ opacity: isUploading ? 0.5 : 1 }}
+              >
+                <MaterialIcons
+                  name="mic"
+                  size={20}
+                  color={isUploading ? '#d1d5db' : '#6b7280'}
+                />
+              </Pressable>
+              {isUploading && (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color="#3b82f6" />
+                </View>
+              )}
+            </View>
+
+            <View style={styles.inputRow}>
+              <TextInput
+                style={styles.input}
+                placeholder="Type a message..."
+                value={message}
+                onChangeText={setMessage}
+                multiline
+                maxLength={1000}
+                placeholderTextColor="#d1d5db"
+                editable={!isUploading}
+              />
+              <Pressable
+                style={styles.sendButton}
+                onPress={handleSend}
+                disabled={(!message.trim() && !isUploading) || isUploading}
+                opacity={(!message.trim() && !isUploading) || isUploading ? 0.5 : 1}
+              >
+                <Text style={styles.sendText}>›</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
