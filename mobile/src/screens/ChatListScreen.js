@@ -119,8 +119,8 @@ export const ChatListScreen = ({ navigation }) => {
       type: 'conversation',
       data: c,
       id: c._id,
-      name: c.participants.find(p => p.userId._id !== user?._id)?.userId.username,
-      unreadCount: c.participants.find(p => p.userId._id === user?._id)?.unreadCount || 0
+      name: c.participants.find(p => p.userId._id?.toString() !== user?._id?.toString())?.userId.username,
+      unreadCount: c.participants.find(p => p.userId._id?.toString() === user?._id?.toString())?.unreadCount || 0
     })),
     ...groups.map(g => ({
       type: 'group',
