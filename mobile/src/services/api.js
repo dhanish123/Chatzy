@@ -137,4 +137,6 @@ export const uploadAPI = {
   }
 };
 
+export { userStateAPI } from './userStateAPI.js';
+
 export default api;
