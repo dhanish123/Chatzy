@@ -217,8 +217,7 @@ export const clearGroup = async (req, res, next) => {
 
 export const makeAdmin = async (req, res, next) => {
   try {
-    const { groupId } = req.params;
-    const { memberId } = req.body;
+    const { groupId, memberId } = req.params;
 
     const group = await Group.findById(groupId);
     if (!group) {
@@ -250,8 +249,7 @@ export const makeAdmin = async (req, res, next) => {
 
 export const removeAdmin = async (req, res, next) => {
   try {
-    const { groupId } = req.params;
-    const { memberId } = req.body;
+    const { groupId, memberId } = req.params;
 
     const group = await Group.findById(groupId);
     if (!group) {
@@ -288,8 +286,7 @@ export const removeAdmin = async (req, res, next) => {
 
 export const removeMember = async (req, res, next) => {
   try {
-    const { groupId } = req.params;
-    const { memberId } = req.body;
+    const { groupId, memberId } = req.params;
 
     const group = await Group.findById(groupId);
     if (!group) {
