@@ -42,12 +42,13 @@ export const uploadProfileImage = async (req, res, next) => {
       return res.status(422).json({ message: 'No file uploaded' });
     }
 
-    // Use relative URL path (will work in all environments)
-    const fileUrl = `/uploads/${req.file.filename}`;
+    // Convert file to base64 data URL
+    const base64Data = req.file.buffer.toString('base64');
+    const dataUrl = `data:${req.file.mimetype};base64,${base64Data}`;
 
     const user = await User.findByIdAndUpdate(
       req.userId,
-      { profileImage: fileUrl },
+      { profileImage: dataUrl },
       { new: true }
     ).select('-password');
 

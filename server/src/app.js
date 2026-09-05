@@ -28,6 +28,13 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Placeholder for old uploads to prevent 404 errors
+app.use('/uploads', (req, res) => {
+  res.status(410).json({ 
+    message: 'Legacy upload endpoint. Images are now stored as base64 in database.' 
+  });
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
