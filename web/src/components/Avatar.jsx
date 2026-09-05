@@ -19,10 +19,18 @@ export const Avatar = ({
   // Build proper image URL
   let imageUrl = '';
   if (src) {
-    // If already a full URL, use as-is
-    if (src.startsWith('http')) {
+    // If already a base64 data URL, use as-is
+    if (src.startsWith('data:')) {
       imageUrl = src;
-    } 
+    }
+    // If already a full URL, use as-is
+    else if (src.startsWith('http')) {
+      imageUrl = src;
+    }
+    // If old /uploads/ path, skip it (it won't work on cloud)
+    else if (src.startsWith('/uploads/')) {
+      imageUrl = '';
+    }
     // If relative path starting with /, prepend base URL (not API URL which includes /api)
     else if (src.startsWith('/')) {
       // Extract base URL from VITE_API_URL by removing /api

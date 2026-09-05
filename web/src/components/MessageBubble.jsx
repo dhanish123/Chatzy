@@ -1,6 +1,7 @@
 import { BsCheck2, BsCheck2All } from 'react-icons/bs';
 import { Avatar } from './Avatar.jsx';
 import { AudioMessage } from './AudioMessage.jsx';
+import { useState } from 'react';
 
 export const MessageBubble = ({
   message,
@@ -13,6 +14,14 @@ export const MessageBubble = ({
 }) => {
   const canEdit = isOwn && !message.isDeleted && Date.now() - new Date(message.createdAt).getTime() < 10 * 60 * 1000;
   const canDelete = isOwn && !message.isDeleted && Date.now() - new Date(message.createdAt).getTime() < 10 * 60 * 1000;
+  const [imageLoadError, setImageLoadError] = useState(false);
+
+  // Check if media URL is valid (not old /uploads/ path)
+  const isValidMediaUrl = message.mediaUrl && !message.mediaUrl.startsWith('/uploads/');
+
+  const handleImageError = () => {
+    setImageLoadError(true);
+  };
 
   return (
     <div
@@ -50,12 +59,17 @@ export const MessageBubble = ({
         >
           {message.isDeleted ? (
             <p className="italic text-gray-500">Message deleted</p>
-          ) : message.mediaType === 'audio' ? (
+          ) : message.mediaType === 'audio' && isValidMediaUrl ? (
             <AudioMessage audioUrl={message.mediaUrl} />
-          ) : message.mediaUrl ? (
+          ) : isValidMediaUrl ? (
             <div>
-              {message.mediaType === 'image' && (
-                <img src={message.mediaUrl} alt="message" className="max-w-xs rounded" />
+              {message.mediaType === 'image' && !imageLoadError && (
+                <img 
+                  src={message.mediaUrl} 
+                  alt="message" 
+                  className="max-w-xs rounded" 
+                  onError={handleImageError}
+                />
               )}
               {message.mediaType === 'video' && (
                 <video src={message.mediaUrl} controls className="max-w-xs rounded" />
