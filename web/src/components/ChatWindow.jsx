@@ -201,7 +201,7 @@ export const ChatWindow = () => {
     if (messages.length > 0) {
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
-      }, 50);
+      }, 100);
     }
   }, [messages, loading]);
 
