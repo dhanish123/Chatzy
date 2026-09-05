@@ -10,6 +10,8 @@ import messageRoutes from './routes/messageRoutes.js';
 import groupRoutes from './routes/groupRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import { User } from './models/User.js';
+import { Message } from './models/Message.js';
 
 const app = express();
 
@@ -33,6 +35,36 @@ app.use('/uploads', (req, res) => {
   res.status(410).json({ 
     message: 'Legacy upload endpoint. Images are now stored as base64 in database.' 
   });
+});
+
+// Admin route to cleanup old image URLs (cleanup migration)
+app.post('/api/admin/cleanup-images', async (req, res) => {
+  try {
+    const adminKey = req.headers['x-admin-key'];
+    if (adminKey !== process.env.ADMIN_KEY) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    // Fix user profile images
+    const usersResult = await User.updateMany(
+      { profileImage: { $regex: '^/uploads/' } },
+      { $set: { profileImage: null } }
+    );
+
+    // Fix message media URLs
+    const messagesResult = await Message.updateMany(
+      { mediaUrl: { $regex: '^/uploads/' } },
+      { $set: { mediaUrl: null } }
+    );
+
+    res.json({
+      message: 'Cleanup complete',
+      usersUpdated: usersResult.modifiedCount,
+      messagesUpdated: messagesResult.modifiedCount
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Cleanup failed', error: error.message });
+  }
 });
 
 // Routes
