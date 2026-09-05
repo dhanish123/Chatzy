@@ -87,12 +87,12 @@ export const ChatWindow = () => {
         console.error('Error loading messages:', error);
       } finally {
         setLoading(false);
-        // Scroll to bottom after loading
-        setTimeout(() => {
+        // Scroll to bottom after loading - use requestAnimationFrame for reliability
+        requestAnimationFrame(() => {
           if (messagesContainerRef.current) {
             messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
           }
-        }, 100);
+        });
       }
     };
 
@@ -206,9 +206,12 @@ export const ChatWindow = () => {
   useEffect(() => {
     // Scroll to bottom when messages load or change
     if (messages.length > 0 && messagesContainerRef.current) {
-      setTimeout(() => {
-        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-      }, 100);
+      // Use requestAnimationFrame to ensure DOM is fully rendered
+      requestAnimationFrame(() => {
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+        }
+      });
     }
   }, [messages]);
 
