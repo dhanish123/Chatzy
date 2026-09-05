@@ -46,7 +46,8 @@ export const ChatWindow = () => {
 
   // Update timestamp when other user's profile image changes
   useEffect(() => {
-    setImageTimestamp(Date.now());
+    // Not needed anymore since Avatar component handles URL construction
+    // Removed: setImageTimestamp(Date.now());
   }, [otherUser?.profileImage]);
 
   useEffect(() => {
@@ -320,7 +321,7 @@ export const ChatWindow = () => {
             <>
               {otherUser && (
                 <Avatar 
-                  src={otherUser.profileImage ? `${otherUser.profileImage}?t=${imageTimestamp}` : ''} 
+                  src={otherUser.profileImage || ''} 
                   initials={otherUser.username?.[0]} 
                   size="md" 
                 />
