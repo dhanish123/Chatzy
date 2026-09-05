@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, FlatList, StyleSheet, TextInput, Pressable, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TextInput, Pressable, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { useChatStore } from '../stores/chatStore.js';
 import { useAuthStore } from '../stores/authStore.js';
-import { messageAPI, conversationAPI, uploadAPI } from '../services/api.js';
+import { messageAPI, conversationAPI, uploadAPI, blockAPI } from '../services/api.js';
 import { getSocket, joinConversation, leaveConversation } from '../services/socket.js';
 import { VoiceRecorder } from '../components/VoiceRecorder.js';
 import { EmojiPickerModal } from '../components/EmojiPickerModal.js';
 import { MediaSelector } from '../components/MediaSelector.js';
+import { ChatHeaderMenu } from '../components/ChatHeaderMenu.js';
 import { MaterialIcons } from '@expo/vector-icons';
 
 const styles = StyleSheet.create({
@@ -127,6 +128,7 @@ export const ChatScreen = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [editingMessage, setEditingMessage] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
+  const [blockStatus, setBlockStatus] = useState({ blocked: false, blockedBy: false });
   const flatListRef = useRef(null);
   const socket = getSocket();
 
@@ -320,7 +322,7 @@ export const ChatScreen = () => {
               </View>
             ) : item.mediaType === 'image' ? (
               <View>
-                <Text style={{ width: 200, height: 150 }}>📷 Image</Text>
+                <Text style={isOwn ? styles.ownText : styles.otherText}>📷 Image</Text>
                 {item.content && <Text style={isOwn ? styles.ownText : styles.otherText}>{item.content}</Text>}
               </View>
             ) : item.mediaType === 'video' ? (
@@ -330,8 +332,7 @@ export const ChatScreen = () => {
               </View>
             ) : item.mediaType === 'file' ? (
               <View>
-                <Text style={isOwn ? styles.ownText : styles.otherText}>📄 File</Text>
-                {item.content && <Text style={isOwn ? styles.ownText : styles.otherText}>{item.content}</Text>}
+                <Text style={isOwn ? styles.ownText : styles.otherText}>📄 {item.content || 'File'}</Text>
               </View>
             ) : (
               <Text style={isOwn ? styles.ownText : styles.otherText}>{item.content}</Text>
@@ -366,14 +367,24 @@ export const ChatScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>
-          {isGroup ? selectedGroup?.name : otherUser?.username}
-        </Text>
-        {!isGroup && otherUser && (
-          <Text style={styles.headerSubtitle}>
-            {otherUser.isOnline ? 'Online' : `Last seen ${new Date(otherUser.lastSeen).toLocaleTimeString()}`}
+      <View style={[styles.header, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.headerTitle}>
+            {isGroup ? selectedGroup?.name : otherUser?.username}
           </Text>
+          {!isGroup && otherUser && (
+            <Text style={styles.headerSubtitle}>
+              {otherUser.isOnline ? 'Online' : `Last seen ${new Date(otherUser.lastSeen).toLocaleTimeString()}`}
+            </Text>
+          )}
+        </View>
+        {!isGroup && otherUser && (
+          <ChatHeaderMenu
+            conversationId={conversationId}
+            otherUserId={otherUser._id}
+            onChatCleared={() => setMessages([])}
+            onUserBlocked={() => setBlockStatus({ ...blockStatus, blocked: true })}
+          />
         )}
       </View>
 
@@ -391,7 +402,32 @@ export const ChatScreen = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={90}
       >
-        {isRecording ? (
+        {blockStatus.blocked ? (
+          <View style={{ backgroundColor: '#fee2e2', borderTopWidth: 1, borderTopColor: '#fecaca', paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ color: '#991b1b', fontSize: 14, fontWeight: '500' }}>You blocked {otherUser?.username}</Text>
+            <Pressable
+              onPress={async () => {
+                try {
+                  await blockAPI.unblockUser(otherUser._id);
+                  setBlockStatus({ ...blockStatus, blocked: false });
+                  if (socket) {
+                    socket.emit('unblockUser', { unblockedUserId: otherUser._id });
+                  }
+                } catch (error) {
+                  console.error('Error unblocking user:', error);
+                  Alert.alert('Error', 'Failed to unblock user');
+                }
+              }}
+              style={{ backgroundColor: '#dc2626', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 }}
+            >
+              <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '600' }}>Unblock</Text>
+            </Pressable>
+          </View>
+        ) : blockStatus.blockedBy ? (
+          <View style={{ backgroundColor: '#fee2e2', borderTopWidth: 1, borderTopColor: '#fecaca', paddingHorizontal: 16, paddingVertical: 12 }}>
+            <Text style={{ color: '#991b1b', fontSize: 14, fontWeight: '500' }}>This user has blocked you</Text>
+          </View>
+        ) : isRecording ? (
           <VoiceRecorder
             onSend={handleVoiceRecordSend}
             onCancel={() => setIsRecording(false)}
@@ -430,13 +466,13 @@ export const ChatScreen = () => {
               <EmojiPickerModal onEmojiSelect={handleEmojiSelect} />
               <Pressable
                 onPress={() => setIsRecording(true)}
-                disabled={isUploading}
-                style={{ opacity: isUploading ? 0.5 : 1 }}
+                disabled={isUploading || blockStatus.blocked || blockStatus.blockedBy}
+                style={{ opacity: (isUploading || blockStatus.blocked || blockStatus.blockedBy) ? 0.5 : 1 }}
               >
                 <MaterialIcons
                   name="mic"
                   size={20}
-                  color={isUploading ? '#d1d5db' : '#6b7280'}
+                  color={(isUploading || blockStatus.blocked || blockStatus.blockedBy) ? '#d1d5db' : '#6b7280'}
                 />
               </Pressable>
               {isUploading && (
@@ -448,20 +484,20 @@ export const ChatScreen = () => {
 
             <View style={styles.inputRow}>
               <TextInput
-                style={styles.input}
-                placeholder={editingMessage ? "Edit message..." : "Type a message..."}
+                style={[styles.input, (blockStatus.blocked || blockStatus.blockedBy) && { backgroundColor: '#f3f4f6' }]}
+                placeholder={blockStatus.blocked ? "You blocked this user" : blockStatus.blockedBy ? "This user has blocked you" : editingMessage ? "Edit message..." : "Type a message..."}
                 value={message}
                 onChangeText={setMessage}
                 multiline
                 maxLength={1000}
                 placeholderTextColor="#d1d5db"
-                editable={!isUploading}
+                editable={!isUploading && !blockStatus.blocked && !blockStatus.blockedBy}
               />
               <Pressable
                 style={styles.sendButton}
                 onPress={handleSend}
-                disabled={(!message.trim() && !editingMessage && !isUploading) || isUploading}
-                opacity={(!message.trim() && !editingMessage && !isUploading) || isUploading ? 0.5 : 1}
+                disabled={(!message.trim() && !editingMessage && !isUploading) || isUploading || blockStatus.blocked || blockStatus.blockedBy}
+                opacity={(!message.trim() && !editingMessage && !isUploading) || isUploading || blockStatus.blocked || blockStatus.blockedBy ? 0.5 : 1}
               >
                 <Text style={styles.sendText}>›</Text>
               </Pressable>
