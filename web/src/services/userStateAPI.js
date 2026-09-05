@@ -32,38 +32,23 @@ axiosInstance.interceptors.response.use(
 );
 
 export const userStateAPI = {
-  // Get user state
+  // Get user state - disabled for now
   getState: async () => {
-    try {
-      const response = await axiosInstance.get('/');
-      return response;
-    } catch (error) {
-      // Return empty state if any error occurs
-      return { data: {} };
-    }
+    return { data: {} };
   },
 
-  // Set selected conversation - fire and forget
-  setSelectedConversation: (conversationId) => {
-    // Fire the request without awaiting
-    axiosInstance.post('/conversation', { conversationId }).catch(() => {
-      // Silently ignore errors
-    });
+  // Set selected conversation - disabled for now
+  setSelectedConversation: () => {
+    // No-op
   },
 
-  // Set selected group - fire and forget
-  setSelectedGroup: (groupId) => {
-    // Fire the request without awaiting
-    axiosInstance.post('/group', { groupId }).catch(() => {
-      // Silently ignore errors
-    });
+  // Set selected group - disabled for now
+  setSelectedGroup: () => {
+    // No-op
   },
 
-  // Clear user state - fire and forget
+  // Clear user state - disabled for now
   clearState: () => {
-    // Fire the request without awaiting
-    axiosInstance.post('/clear').catch(() => {
-      // Silently ignore errors
-    });
+    // No-op
   }
 };
