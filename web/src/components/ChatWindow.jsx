@@ -75,7 +75,7 @@ export const ChatWindow = () => {
         socket.emit('leaveConversation', conversationId);
       };
     }
-  }, [conversationId, isGroup]);
+  }, [conversationId, isGroup, selectedConversation, socket, addMessage, messageAPI]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
