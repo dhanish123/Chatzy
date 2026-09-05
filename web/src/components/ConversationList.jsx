@@ -1,12 +1,14 @@
 import { useEffect } from 'react';
 import { useChatStore } from '../stores/chatStore.js';
 import { useFriendStore } from '../stores/friendStore.js';
+import { useAuthStore } from '../stores/authStore.js';
 import { Avatar } from './Avatar.jsx';
 import { EmptyState } from './EmptyState.jsx';
 import { LuMessageSquare } from 'react-icons/lu';
 
 export const ConversationList = ({ searchQuery = '' }) => {
   const { conversations, setSelectedConversation, selectedConversation } = useChatStore();
+  const { user } = useAuthStore();
 
   // Auto-select first conversation on load if none selected
   useEffect(() => {
@@ -30,7 +32,7 @@ export const ConversationList = ({ searchQuery = '' }) => {
           return null;
         }
 
-        const userId = localStorage.getItem('userId');
+        const userId = user?._id?.toString();
         const otherUser = conv.participants.find(p => p?.userId?._id?.toString() !== userId);
         
         if (!otherUser?.userId) return null;
@@ -45,7 +47,17 @@ export const ConversationList = ({ searchQuery = '' }) => {
               <Avatar src={otherUser.userId.profileImage} initials={otherUser.userId.username?.[0] || 'U'} size="md" />
               <div className="flex-1 min-w-0">
                 <p className="font-medium">{otherUser.userId.username}</p>
-                <p className="text-sm text-gray-500 truncate">{conv.lastMessage?.content || 'No messages'}</p>
+                <p className="text-sm text-gray-500 truncate">
+                  {conv.lastMessage?.mediaType === 'audio' 
+                    ? '🎙️ Audio message'
+                    : conv.lastMessage?.mediaType === 'image'
+                    ? '📷 Image'
+                    : conv.lastMessage?.mediaType === 'video'
+                    ? '🎥 Video'
+                    : conv.lastMessage?.mediaType === 'file'
+                    ? '📄 File'
+                    : conv.lastMessage?.content || 'No messages'}
+                </p>
               </div>
             </div>
             {otherUser.unreadCount > 0 && (
