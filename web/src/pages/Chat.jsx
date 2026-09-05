@@ -68,7 +68,7 @@ export const Chat = () => {
   return (
     <div className="flex h-screen overflow-hidden bg-white">
       <Sidebar />
-      {conversations.length > 0 && selectedConversation ? (
+      {selectedConversation ? (
         <ChatWindow />
       ) : (
         <div className="flex-1 flex items-center justify-center bg-gray-50">
