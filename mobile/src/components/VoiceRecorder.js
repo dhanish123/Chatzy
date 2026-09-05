@@ -4,7 +4,7 @@ import { Audio } from 'expo-av';
 import { MaterialIcons } from '@expo/vector-icons';
 
 const styles = StyleSheet.create({
-  recordingContainer: {
+  container: {
     backgroundColor: '#fef2f2',
     borderTopWidth: 1,
     borderTopColor: '#fee2e2',
@@ -45,69 +45,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600'
   },
-  recordedContainer: {
-    backgroundColor: '#ffffff',
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-    paddingHorizontal: 16,
-    paddingVertical: 12
-  },
-  recordedHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    gap: 12
-  },
-  recordedInfo: {
-    flex: 1
-  },
-  recordedLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#3b82f6'
-  },
-  recordedTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginTop: 4
-  },
-  recordedDuration: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 2
-  },
-  playButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#3b82f6',
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#10b981',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8
-  },
-  deleteButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#ef4444',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8
-  },
   waveformContainer: {
-    height: 60,
+    height: 50,
     backgroundColor: '#ffffff',
     borderRadius: 8,
-    marginTop: 8,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
@@ -118,18 +59,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     height: '100%',
-    gap: 4,
+    gap: 3,
     paddingHorizontal: 8
   }
 });
 
 export const VoiceRecorder = ({ onSend, onCancel }) => {
   const [isRecording, setIsRecording] = useState(false);
-  const [recordedUri, setRecordedUri] = useState(null);
   const [duration, setDuration] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
   const recordingRef = useRef(null);
-  const soundRef = useRef(null);
   const durationIntervalRef = useRef(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -137,9 +75,6 @@ export const VoiceRecorder = ({ onSend, onCancel }) => {
     return () => {
       if (recordingRef.current) {
         recordingRef.current.stopAndUnloadAsync();
-      }
-      if (soundRef.current) {
-        soundRef.current.unloadAsync();
       }
       if (durationIntervalRef.current) {
         clearInterval(durationIntervalRef.current);
@@ -197,64 +132,30 @@ export const VoiceRecorder = ({ onSend, onCancel }) => {
       if (recordingRef.current) {
         await recordingRef.current.stopAndUnloadAsync();
         const uri = recordingRef.current.getURI();
-        setRecordedUri(uri);
         setIsRecording(false);
 
         if (durationIntervalRef.current) {
           clearInterval(durationIntervalRef.current);
         }
+
+        // Auto-send the audio
+        onSend(uri, 'audio');
+        handleCancel();
       }
     } catch (error) {
       console.error('Error stopping recording:', error);
     }
   };
 
-  const togglePlayback = async () => {
-    try {
-      if (isPlaying && soundRef.current) {
-        await soundRef.current.pauseAsync();
-        setIsPlaying(false);
-      } else {
-        if (!soundRef.current) {
-          const sound = new Audio.Sound();
-          await sound.loadAsync({ uri: recordedUri });
-          soundRef.current = sound;
-        }
-        await soundRef.current.playAsync();
-        setIsPlaying(true);
-
-        // Auto-stop when finished
-        soundRef.current.setOnPlaybackStatusUpdate((status) => {
-          if (status.didJustFinish) {
-            setIsPlaying(false);
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Error playing recording:', error);
+  const handleCancel = () => {
+    if (recordingRef.current) {
+      recordingRef.current.stopAndUnloadAsync();
     }
-  };
-
-  const handleSend = async () => {
-    if (recordedUri) {
-      onSend(recordedUri, 'audio');
-      setRecordedUri(null);
-      setDuration(0);
-      setIsPlaying(false);
-    }
-  };
-
-  const handleCancel = async () => {
-    if (isRecording) {
-      await stopRecording();
-    }
-    if (soundRef.current) {
-      await soundRef.current.unloadAsync();
-      soundRef.current = null;
-    }
-    setRecordedUri(null);
+    setIsRecording(false);
     setDuration(0);
-    setIsPlaying(false);
+    if (durationIntervalRef.current) {
+      clearInterval(durationIntervalRef.current);
+    }
     onCancel();
   };
 
@@ -265,8 +166,8 @@ export const VoiceRecorder = ({ onSend, onCancel }) => {
   };
 
   const renderWaveform = () => {
-    const bars = Array.from({ length: 20 }).map((_, i) => {
-      const height = Math.sin(i * 0.5) * 20 + 25;
+    const bars = Array.from({ length: 15 }).map((_, i) => {
+      const height = Math.sin(i * 0.5) * 18 + 22;
       return (
         <View
           key={i}
@@ -282,48 +183,9 @@ export const VoiceRecorder = ({ onSend, onCancel }) => {
     return bars;
   };
 
-  if (recordedUri) {
-    return (
-      <View style={styles.recordedContainer}>
-        <View style={styles.recordedHeader}>
-          <View style={styles.recordedInfo}>
-            <Text style={styles.recordedLabel}>Voice Message</Text>
-            <Text style={styles.recordedTitle}>Audio Recording</Text>
-            <Text style={styles.recordedDuration}>{formatTime(duration)}</Text>
-          </View>
-
-          <Pressable
-            style={styles.playButton}
-            onPress={togglePlayback}
-          >
-            <MaterialIcons
-              name={isPlaying ? 'stop' : 'play-arrow'}
-              size={20}
-              color="#ffffff"
-            />
-          </Pressable>
-
-          <Pressable
-            style={styles.sendButton}
-            onPress={handleSend}
-          >
-            <MaterialIcons name="send" size={20} color="#ffffff" />
-          </Pressable>
-
-          <Pressable
-            style={styles.deleteButton}
-            onPress={handleCancel}
-          >
-            <MaterialIcons name="close" size={20} color="#ffffff" />
-          </Pressable>
-        </View>
-      </View>
-    );
-  }
-
   if (isRecording) {
     return (
-      <View style={styles.recordingContainer}>
+      <View style={styles.container}>
         <View style={styles.recordingHeader}>
           <Animated.View
             style={[
@@ -340,11 +202,10 @@ export const VoiceRecorder = ({ onSend, onCancel }) => {
             style={styles.stopButton}
             onPress={stopRecording}
           >
-            <Text style={styles.stopButtonText}>Stop</Text>
+            <Text style={styles.stopButtonText}>Send</Text>
           </Pressable>
 
           <Pressable
-            style={{ marginLeft: 8 }}
             onPress={handleCancel}
           >
             <MaterialIcons name="close" size={24} color="#6b7280" />
