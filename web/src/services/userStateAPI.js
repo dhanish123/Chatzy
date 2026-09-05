@@ -22,12 +22,8 @@ axiosInstance.interceptors.request.use((config) => {
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 404) {
-      // If user state not found, return empty object
-      return { data: {} };
-    }
-    if (error.response?.status === 401) {
-      // If unauthorized, just return empty
+    if (error.response?.status === 404 || error.response?.status === 401) {
+      // If user state not found or unauthorized, return empty object
       return { data: {} };
     }
     // For other errors, re-throw
@@ -47,36 +43,30 @@ export const userStateAPI = {
     }
   },
 
-  // Set selected conversation
+  // Set selected conversation - fire and forget, don't report errors
   setSelectedConversation: async (conversationId) => {
-    try {
-      const response = await axiosInstance.post('/conversation', { conversationId });
-      return response;
-    } catch (error) {
-      // Silently fail for set operations
-      return null;
-    }
+    // Don't await or catch, just fire the request
+    axiosInstance.post('/conversation', { conversationId }).catch(() => {
+      // Silently ignore errors
+    });
+    return null;
   },
 
-  // Set selected group
+  // Set selected group - fire and forget, don't report errors
   setSelectedGroup: async (groupId) => {
-    try {
-      const response = await axiosInstance.post('/group', { groupId });
-      return response;
-    } catch (error) {
-      // Silently fail for set operations
-      return null;
-    }
+    // Don't await or catch, just fire the request
+    axiosInstance.post('/group', { groupId }).catch(() => {
+      // Silently ignore errors
+    });
+    return null;
   },
 
-  // Clear user state
+  // Clear user state - fire and forget, don't report errors
   clearState: async () => {
-    try {
-      const response = await axiosInstance.post('/clear');
-      return response;
-    } catch (error) {
-      // Silently fail for clear operations
-      return null;
-    }
+    // Don't await or catch, just fire the request
+    axiosInstance.post('/clear').catch(() => {
+      // Silently ignore errors
+    });
+    return null;
   }
 };
