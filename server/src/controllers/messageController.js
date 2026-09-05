@@ -19,7 +19,7 @@ export const getMessages = async (req, res, next) => {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    // Build query - exclude messages created before clearedAt
+    // Build query - only show messages created after clearedAt
     const query = { conversationId };
     if (participant.clearedAt) {
       query.createdAt = { $gte: participant.clearedAt };

@@ -142,7 +142,8 @@ export const clearConversation = async (req, res, next) => {
 
     // Only mark messages as hidden for the current user, don't delete them
     // Update participant's clearedAt timestamp so they won't see messages before this time
-    participant.clearedAt = new Date();
+    // Set to one moment in the past to ensure new messages (sent after clear) are visible
+    participant.clearedAt = new Date(Date.now() + 1); // Messages created after this point will show
     await conversation.save();
 
     res.json({ message: 'Conversation cleared' });
