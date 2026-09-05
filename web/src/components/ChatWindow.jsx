@@ -15,6 +15,7 @@ export const ChatWindow = () => {
   const [loading, setLoading] = useState(true);
   const [hoveredMessage, setHoveredMessage] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
+  const [replyingTo, setReplyingTo] = useState(null);
   const messagesEndRef = useRef(null);
   const socket = getSocket();
 
@@ -30,10 +31,7 @@ export const ChatWindow = () => {
     );
   }
 
-  const otherUser = !isGroup ? selectedConversation?.participants?.find(p => {
-    const userId = typeof p.userId === 'object' ? p.userId._id : p.userId;
-    return userId !== user?._id;
-  })?.userId : null;
+  const otherUser = !isGroup ? selectedConversation?.participants?.find(p => p.userId._id !== user?._id)?.userId : null;
 
   useEffect(() => {
     if (!conversationId) return;
@@ -100,11 +98,11 @@ export const ChatWindow = () => {
   const handleEditMessage = async (messageId, content) => {
     try {
       const response = await messageAPI.edit(messageId, content);
-      updateMessage(messageId, response.data);
+      updateMessage(messageId, { content: response.data.content, isEdited: true });
       setEditingMessage(null);
 
       if (socket) {
-        socket.emit('messageUpdated', { messageId, ...response.data });
+        socket.emit('messageUpdated', { messageId, content: response.data.content, isEdited: true });
       }
     } catch (error) {
       console.error('Error editing message:', error);
@@ -160,7 +158,9 @@ export const ChatWindow = () => {
               key={msg._id}
               message={msg}
               isOwn={msg.senderId._id === user?._id}
-              onReply={() => {}}
+              onReply={(message) => {
+                setReplyingTo(message);
+              }}
               onEdit={(message) => {
                 setEditingMessage(message);
               }}
@@ -180,6 +180,9 @@ export const ChatWindow = () => {
         onEditSave={(content) => {
           handleEditMessage(editingMessage._id, content);
         }}
+        replyingTo={replyingTo}
+        onCancelReply={() => setReplyingTo(null)}
+        onSetReply={setReplyingTo}
       />
     </div>
   );

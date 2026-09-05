@@ -10,11 +10,13 @@ export const MessageInput = ({
   onSend, 
   editingMessage, 
   onCancelEdit, 
-  onEditSave 
+  onEditSave,
+  replyingTo,
+  onCancelReply,
+  onSetReply
 }) => {
   const [message, setMessage] = useState('');
   const [uploading, setUploading] = useState(false);
-  const [replyingTo, setReplyingTo] = useState(null);
   const fileInputRef = useRef(null);
 
   const handleSend = async () => {
@@ -24,7 +26,7 @@ export const MessageInput = ({
     } else if (message.trim() || uploading) {
       onSend(message, null, null, replyingTo?._id);
       setMessage('');
-      setReplyingTo(null);
+      onCancelReply?.();
     }
   };
 
@@ -47,7 +49,7 @@ export const MessageInput = ({
       
       const mediaType = file.type.split('/')[0];
       onSend('', response.data.url, mediaType === 'application' ? 'file' : mediaType, replyingTo?._id);
-      setReplyingTo(null);
+      onCancelReply?.();
     } catch (error) {
       console.error('Upload error:', error);
     } finally {
@@ -75,7 +77,7 @@ export const MessageInput = ({
             <p className="text-xs font-semibold text-gray-600">Replying to</p>
             <p className="text-sm text-gray-700 truncate">{replyingTo.content}</p>
           </div>
-          <button onClick={() => setReplyingTo(null)} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onCancelReply} className="text-gray-400 hover:text-gray-600">
             <RiCloseLine />
           </button>
         </div>
