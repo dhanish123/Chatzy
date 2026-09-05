@@ -48,12 +48,11 @@ export const Avatar = ({
 
   const handleImageError = () => {
     setImageError(true);
-    console.error('Failed to load image:', imageUrl);
   };
 
   return (
     <div className={`${sizes[size]} rounded-full bg-blue-500 text-white flex items-center justify-center overflow-hidden flex-shrink-0 ${className}`}>
-      {src && !imageError ? (
+      {imageUrl && !imageError ? (
         <img 
           src={imageUrl} 
           alt={alt} 
