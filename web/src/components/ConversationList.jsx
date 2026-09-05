@@ -48,7 +48,9 @@ export const ConversationList = ({ searchQuery = '' }) => {
               <div className="flex-1 min-w-0">
                 <p className="font-medium">{otherUser.userId.username}</p>
                 <p className="text-sm text-gray-500 truncate">
-                  {conv.lastMessage?.mediaType === 'audio' 
+                  {conv.lastMessage?.isDeleted
+                    ? 'Message deleted'
+                    : conv.lastMessage?.mediaType === 'audio' 
                     ? '🎙️ Audio message'
                     : conv.lastMessage?.mediaType === 'image'
                     ? '📷 Image'
