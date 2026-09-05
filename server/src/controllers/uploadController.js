@@ -13,6 +13,7 @@ export const uploadFile = async (req, res, next) => {
       size: req.file.size
     });
   } catch (error) {
+    console.error('Upload error:', error);
     next(error);
   }
 };
