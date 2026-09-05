@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { View, Text, FlatList, StyleSheet, TextInput, Pressable, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Image } from 'react-native';
 import { useChatStore } from '../stores/chatStore.js';
 import { useAuthStore } from '../stores/authStore.js';
-import { messageAPI, conversationAPI, uploadAPI, blockAPI, groupAPI } from '../services/api.js';
+import { messageAPI, conversationAPI, uploadAPI, blockAPI, groupAPI, getImageUrl } from '../services/api.js';
 import { getSocket, joinConversation, leaveConversation } from '../services/socket.js';
 import { VoiceRecorder } from '../components/VoiceRecorder.js';
 import { EmojiPickerModal } from '../components/EmojiPickerModal.js';
@@ -524,7 +524,7 @@ export const ChatScreen = () => {
           {!isGroup && otherUser && (
             otherUser.profileImage ? (
               <Image 
-                source={{ uri: `${otherUser.profileImage}?t=${imageTimestamp}` }}
+                source={{ uri: getImageUrl(otherUser.profileImage) }}
                 style={styles.headerProfileImage}
               />
             ) : (

@@ -3,6 +3,18 @@ import { useAuthStore } from '../stores/authStore.js';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
+// Helper to construct proper image URLs
+export const getImageUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  
+  // Remove /api from base URL to get domain
+  const baseUrl = API_URL.replace('/api', '');
+  
+  if (url.startsWith('/')) return `${baseUrl}${url}`;
+  return `${baseUrl}/${url}`;
+};
+
 const api = axios.create({
   baseURL: API_URL,
   headers: {
