@@ -36,6 +36,8 @@ export const MessageBubble = ({
         >
           {message.isDeleted ? (
             <p className="italic text-gray-500">Message deleted</p>
+          ) : message.mediaType === 'audio' ? (
+            <AudioMessage audioUrl={message.mediaUrl} />
           ) : message.mediaUrl ? (
             <div>
               {message.mediaType === 'image' && (
@@ -43,9 +45,6 @@ export const MessageBubble = ({
               )}
               {message.mediaType === 'video' && (
                 <video src={message.mediaUrl} controls className="max-w-xs rounded" />
-              )}
-              {message.mediaType === 'audio' && (
-                <AudioMessage audioUrl={message.mediaUrl} />
               )}
               {message.mediaType === 'file' && (
                 <a href={message.mediaUrl} target="_blank" rel="noopener noreferrer" className="underline">

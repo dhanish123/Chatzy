@@ -67,7 +67,7 @@ export const AudioMessage = ({ audioUrl }) => {
   };
 
   return (
-    <div className="flex items-center gap-3 bg-blue-50 rounded-lg p-3 w-fit max-w-xs">
+    <div className="flex items-center gap-3 bg-white rounded-lg p-3 w-fit max-w-xs border border-gray-200 shadow-sm">
       <audio ref={audioRef} src={audioUrl} />
 
       <button
@@ -89,7 +89,7 @@ export const AudioMessage = ({ audioUrl }) => {
         {generateWaveform()}
       </div>
 
-      <span className="text-xs text-gray-600 font-medium ml-1 whitespace-nowrap">
+      <span className="text-xs text-gray-700 font-medium ml-1 whitespace-nowrap">
         {formatTime(duration)}
       </span>
     </div>
