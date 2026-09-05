@@ -36,7 +36,8 @@ export const ChatWindow = () => {
 
   const otherUser = !isGroup ? selectedConversation?.participants?.find(p => p.userId._id !== user?._id)?.userId : null;
 
-
+  useEffect(() => {
+    if (!conversationId) return;
 
     const loadMessages = async () => {
       try {
@@ -75,7 +76,7 @@ export const ChatWindow = () => {
         socket.emit('leaveConversation', conversationId);
       };
     }
-  }, [conversationId, isGroup, selectedConversation, socket, addMessage, messageAPI]);
+  }, [conversationId, isGroup, selectedConversation, socket, addMessage]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
