@@ -45,11 +45,6 @@ export const ChatWindow = () => {
         const response = await messageAPI.getMessages(conversationId);
         setMessages(response.data);
         
-        // Scroll to last message after loading
-        setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
-        }, 100);
-        
         if (!isGroup && selectedConversation) {
           await conversationAPI.markAsRead(conversationId);
         }
@@ -79,8 +74,13 @@ export const ChatWindow = () => {
   }, [conversationId, isGroup, selectedConversation, socket, addMessage]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    // Scroll to bottom when messages load or change
+    if (messages.length > 0) {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      }, 50);
+    }
+  }, [messages, loading]);
 
   useEffect(() => {
     if (!conversationId || isGroup || !otherUser) return;
