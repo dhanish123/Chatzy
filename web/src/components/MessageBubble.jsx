@@ -58,7 +58,7 @@ export const MessageBubble = ({
           }`}
         >
           {message.isDeleted ? (
-            <p className="italic text-gray-500">Message deleted</p>
+            <p className={`italic ${isOwn ? 'text-white' : 'text-gray-500'}`}>Message deleted</p>
           ) : message.mediaType === 'audio' && isValidMediaUrl ? (
             <AudioMessage audioUrl={message.mediaUrl} />
           ) : isValidMediaUrl ? (
