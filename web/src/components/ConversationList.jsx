@@ -19,6 +19,10 @@ export const ConversationList = ({ searchQuery = '' }) => {
       const validConv = conversations.find(c => c?.participants && c.participants.length > 0);
       if (validConv) {
         setSelectedConversation(validConv);
+        // Save auto-selected conversation to MongoDB
+        userStateAPI.setSelectedConversation(validConv._id).catch(err => 
+          console.error('Error saving auto-selected conversation:', err)
+        );
       }
     }
   }, [conversations, selectedConversation, setSelectedConversation]);

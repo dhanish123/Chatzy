@@ -23,14 +23,14 @@ export const Chat = () => {
         const [convRes, groupRes, stateRes] = await Promise.all([
           conversationAPI.getAll(),
           groupAPI.getAll(),
-          userStateAPI.getState()
+          userStateAPI.getState().catch(() => ({ data: {} })) // Fallback if userState fetch fails
         ]);
         
         setConversations(convRes.data);
         setGroups(groupRes.data);
 
         // Restore selected conversation from MongoDB
-        if (stateRes.data?.selectedConversationId) {
+        if (stateRes?.data?.selectedConversationId) {
           const savedConv = convRes.data.find(c => c._id === stateRes.data.selectedConversationId);
           if (savedConv) {
             setSelectedConversation(savedConv);
@@ -38,7 +38,7 @@ export const Chat = () => {
         }
 
         // Restore selected group from MongoDB
-        if (stateRes.data?.selectedGroupId) {
+        if (stateRes?.data?.selectedGroupId) {
           const savedGroup = groupRes.data.find(g => g._id === stateRes.data.selectedGroupId);
           if (savedGroup) {
             setSelectedGroup(savedGroup);
