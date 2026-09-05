@@ -26,7 +26,7 @@ const messageSchema = new mongoose.Schema({
   },
   mediaType: {
     type: String,
-    enum: ['image', 'video', 'audio', 'file', null],
+    enum: ['image', 'video', 'audio', 'file', 'application/pdf', null],
     default: null
   },
   replyTo: {
