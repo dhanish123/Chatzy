@@ -23,7 +23,8 @@ export const useChatStore = create(
       name: 'chat-store',
       partialize: (state) => ({
         conversations: state.conversations,
-        selectedConversation: state.selectedConversation
+        selectedConversation: state.selectedConversation,
+        messages: state.messages
       })
     }
   )
