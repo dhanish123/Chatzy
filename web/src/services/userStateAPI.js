@@ -43,30 +43,27 @@ export const userStateAPI = {
     }
   },
 
-  // Set selected conversation - fire and forget, don't report errors
-  setSelectedConversation: async (conversationId) => {
-    // Don't await or catch, just fire the request
+  // Set selected conversation - fire and forget
+  setSelectedConversation: (conversationId) => {
+    // Fire the request without awaiting
     axiosInstance.post('/conversation', { conversationId }).catch(() => {
       // Silently ignore errors
     });
-    return null;
   },
 
-  // Set selected group - fire and forget, don't report errors
-  setSelectedGroup: async (groupId) => {
-    // Don't await or catch, just fire the request
+  // Set selected group - fire and forget
+  setSelectedGroup: (groupId) => {
+    // Fire the request without awaiting
     axiosInstance.post('/group', { groupId }).catch(() => {
       // Silently ignore errors
     });
-    return null;
   },
 
-  // Clear user state - fire and forget, don't report errors
-  clearState: async () => {
-    // Don't await or catch, just fire the request
+  // Clear user state - fire and forget
+  clearState: () => {
+    // Fire the request without awaiting
     axiosInstance.post('/clear').catch(() => {
       // Silently ignore errors
     });
-    return null;
   }
 };
