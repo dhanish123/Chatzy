@@ -103,6 +103,24 @@ export const ChatListScreen = ({ navigation }) => {
 
           setConversations(convRes.data);
           setGroups(groupRes.data);
+
+          // Setup socket listeners for unread count updates
+          const socket = getSocket();
+          if (socket) {
+            const handleUnreadUpdate = (data) => {
+              // Refresh conversations and groups to get updated unread counts
+              conversationAPI.getAll().then(res => setConversations(res.data));
+              groupAPI.getAll().then(res => setGroups(res.data));
+            };
+
+            socket.on('newMessage', handleUnreadUpdate);
+            socket.on('messageRead', handleUnreadUpdate);
+
+            return () => {
+              socket.off('newMessage', handleUnreadUpdate);
+              socket.off('messageRead', handleUnreadUpdate);
+            };
+          }
         } catch (error) {
           console.error('Error loading chats:', error);
         } finally {
