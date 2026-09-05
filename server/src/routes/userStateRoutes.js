@@ -1,5 +1,5 @@
 import express from 'express';
-import { auth } from '../middleware/auth.js';
+import { authMiddleware } from '../middleware/auth.js';
 import {
   getUserState,
   setSelectedConversation,
@@ -10,15 +10,15 @@ import {
 const router = express.Router();
 
 // Get user state
-router.get('/', auth, getUserState);
+router.get('/', authMiddleware, getUserState);
 
 // Set selected conversation
-router.post('/conversation', auth, setSelectedConversation);
+router.post('/conversation', authMiddleware, setSelectedConversation);
 
 // Set selected group
-router.post('/group', auth, setSelectedGroup);
+router.post('/group', authMiddleware, setSelectedGroup);
 
 // Clear user state
-router.post('/clear', auth, clearUserState);
+router.post('/clear', authMiddleware, clearUserState);
 
 export default router;
