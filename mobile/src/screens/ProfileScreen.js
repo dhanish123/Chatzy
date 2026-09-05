@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, SafeAreaView, ScrollView, Alert, Image } from 'react-native';
 import { useAuthStore } from '../stores/authStore.js';
 import { useNavigation } from '@react-navigation/native';
-import { userAPI } from '../services/api.js';
+import { userAPI, getImageUrl } from '../services/api.js';
 import { Button } from '../components/Button.js';
 import { Input } from '../components/Input.js';
 import { disconnectSocket } from '../services/socket.js';
@@ -194,14 +194,8 @@ export const ProfileScreen = () => {
           name: 'profile.jpg'
         });
 
-        // Update user with cache-busting timestamp
-        const updatedUser = {
-          ...response.data,
-          profileImage: response.data.profileImage ? `${response.data.profileImage}?t=${Date.now()}` : null
-        };
-
-        setUser(updatedUser);
-        setImageTimestamp(Date.now());
+        // Update user with new profile image
+        setUser(response.data);
         setMessage('Profile image updated');
         setTimeout(() => setMessage(''), 3000);
       }
@@ -213,27 +207,9 @@ export const ProfileScreen = () => {
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', onPress: () => {}, style: 'cancel' },
-      {
-        text: 'Logout',
-        onPress: () => {
-          logout();
-          disconnectSocket();
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'Login' }]
-          });
-        },
-        style: 'destructive'
-      }
-    ]);
-  };
-
   const getProfileImageUrl = () => {
     if (!user?.profileImage) return null;
-    return `${user.profileImage}?t=${imageTimestamp}`;
+    return getImageUrl(user.profileImage);
   };
 
   const handleLogout = () => {
