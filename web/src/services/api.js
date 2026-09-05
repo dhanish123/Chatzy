@@ -96,6 +96,9 @@ export const groupAPI = {
   getAll: () => api.get('/groups'),
   get: (groupId) => api.get(`/groups/${groupId}`),
   addMembers: (groupId, memberIds) => api.post(`/groups/${groupId}/members`, { memberIds }),
+  makeAdmin: (groupId, memberId) => api.post(`/groups/${groupId}/members/${memberId}/admin`),
+  removeAdmin: (groupId, memberId) => api.delete(`/groups/${groupId}/members/${memberId}/admin`),
+  removeMember: (groupId, memberId) => api.delete(`/groups/${groupId}/members/${memberId}`),
   leave: (groupId) => api.delete(`/groups/${groupId}/leave`),
   clear: (groupId) => api.delete(`/groups/${groupId}/clear`)
 };

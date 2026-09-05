@@ -8,6 +8,7 @@ import { MessageBubble } from './MessageBubble.jsx';
 import { MessageInput } from './MessageInput.jsx';
 import { ChatHeaderMenu } from './ChatHeaderMenu.jsx';
 import { GroupHeaderMenu } from './GroupHeaderMenu.jsx';
+import { GroupMembersPanel } from './GroupMembersPanel.jsx';
 import { SystemMessage } from './SystemMessage.jsx';
 import { TypingIndicator } from './TypingIndicator.jsx';
 import { Loader } from './Loader.jsx';
@@ -16,7 +17,7 @@ import { Avatar } from './Avatar.jsx';
 export const ChatWindow = () => {
   const { user } = useAuthStore();
   const { selectedConversation, messages, setMessages, addMessage, updateMessage } = useChatStore();
-  const { selectedGroup } = useGroupStore();
+  const { selectedGroup, setSelectedGroup } = useGroupStore();
   const [loading, setLoading] = useState(true);
   const [hoveredMessage, setHoveredMessage] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
@@ -296,8 +297,14 @@ export const ChatWindow = () => {
     );
   }
 
+  // Determine if current user is admin for groups
+  const isGroupAdmin = isGroup && (selectedGroup?.creatorId?._id === user?._id || 
+    selectedGroup?.members?.some(m => m.userId._id === user?._id && m.isAdmin));
+
   return (
-    <div className="flex-1 flex flex-col h-screen bg-white">
+    <div className="flex-1 flex h-screen bg-white">
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col"
       {/* Chat Header */}
       <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
         <div className="flex items-center gap-3 flex-1">
@@ -430,6 +437,20 @@ export const ChatWindow = () => {
           isBlocked={blockStatus.blockedBy}
           onTyping={handleTyping}
           onStopTyping={handleStopTyping}
+        />
+      )}
+      </div>
+
+      {/* Members Panel for Groups */}
+      {isGroup && selectedGroup && (
+        <GroupMembersPanel
+          group={selectedGroup}
+          currentUserId={user?._id}
+          isAdmin={isGroupAdmin}
+          onMembersUpdate={(updatedGroup) => {
+            // Update the selected group in store
+            setSelectedGroup(updatedGroup);
+          }}
         />
       )}
     </div>
