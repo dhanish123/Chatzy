@@ -42,6 +42,11 @@ export const ChatWindow = () => {
         const response = await messageAPI.getMessages(conversationId);
         setMessages(response.data);
         
+        // Scroll to last message after loading
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+        }, 100);
+        
         if (!isGroup && selectedConversation) {
           await conversationAPI.markAsRead(conversationId);
         }

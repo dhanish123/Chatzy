@@ -44,7 +44,7 @@ export const MessageBubble = ({
                 <video src={message.mediaUrl} controls className="max-w-xs rounded" />
               )}
               {message.mediaType === 'audio' && (
-                <audio src={message.mediaUrl} controls className="w-full" />
+                <audio src={message.mediaUrl} controls className="w-full max-w-xs" />
               )}
               {message.mediaType === 'file' && (
                 <a href={message.mediaUrl} target="_blank" rel="noopener noreferrer" className="underline">

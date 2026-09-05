@@ -1,20 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
-import { BsMic, BsMicFill, BsStop, BsPlay } from 'react-icons/bs';
+import { BsMicFill, BsStop, RiSendPlaneFill, RiCloseLine } from 'react-icons/bs';
 import { RiSendPlaneFill, RiCloseLine } from 'react-icons/ri';
 
 export const VoiceRecorder = ({ onSend, onCancel }) => {
   const [isRecording, setIsRecording] = useState(false);
-  const [recordedBlob, setRecordedBlob] = useState(null);
   const [duration, setDuration] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
   const mediaRecorderRef = useRef(null);
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
-  const audioRef = useRef(null);
   const durationIntervalRef = useRef(null);
   const animationIdRef = useRef(null);
+  const chunksRef = useRef([]);
 
   useEffect(() => {
     return () => {
@@ -37,34 +35,30 @@ export const VoiceRecorder = ({ onSend, onCancel }) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
+      chunksRef.current = [];
 
-      // Set up audio context for waveform visualization
       audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
       analyserRef.current = audioContextRef.current.createAnalyser();
       const source = audioContextRef.current.createMediaStreamSource(stream);
       source.connect(analyserRef.current);
       analyserRef.current.fftSize = 2048;
 
-      // Start recording
       mediaRecorderRef.current = new MediaRecorder(stream);
-      const chunks = [];
-
-      mediaRecorderRef.current.ondataavailable = (e) => chunks.push(e.data);
+      mediaRecorderRef.current.ondataavailable = (e) => chunksRef.current.push(e.data);
       mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/wav' });
-        setRecordedBlob(blob);
+        const blob = new Blob(chunksRef.current, { type: 'audio/wav' });
+        onSend(blob);
+        handleCancel();
       };
 
       mediaRecorderRef.current.start();
       setIsRecording(true);
       setDuration(0);
 
-      // Update duration
       durationIntervalRef.current = setInterval(() => {
         setDuration(d => d + 1);
       }, 1000);
 
-      // Draw waveform
       drawWaveform();
     } catch (error) {
       console.error('Error accessing microphone:', error);
@@ -118,50 +112,28 @@ export const VoiceRecorder = ({ onSend, onCancel }) => {
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
-      setIsRecording(false);
-
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-
-      if (durationIntervalRef.current) {
-        clearInterval(durationIntervalRef.current);
-      }
-
-      if (animationIdRef.current) {
-        cancelAnimationFrame(animationIdRef.current);
-      }
-    }
-  };
-
-  const togglePlayback = () => {
-    if (!audioRef.current) return;
-
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      audioRef.current.play();
-      setIsPlaying(true);
-    }
-  };
-
-  const handleSend = async () => {
-    if (recordedBlob) {
-      // Create FormData for the audio blob
-      onSend(recordedBlob);
-      setRecordedBlob(null);
-      setDuration(0);
     }
   };
 
   const handleCancel = () => {
-    if (isRecording) {
-      stopRecording();
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
     }
-    setRecordedBlob(null);
+    setIsRecording(false);
     setDuration(0);
-    setIsPlaying(false);
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+    }
+
+    if (durationIntervalRef.current) {
+      clearInterval(durationIntervalRef.current);
+    }
+
+    if (animationIdRef.current) {
+      cancelAnimationFrame(animationIdRef.current);
+    }
+
     onCancel();
   };
 
@@ -171,101 +143,44 @@ export const VoiceRecorder = ({ onSend, onCancel }) => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  if (recordedBlob) {
-    return (
-      <div className="bg-gray-50 border-t border-gray-200 p-4">
-        <div className="flex items-center gap-3 bg-white border border-gray-300 rounded-lg p-4">
-          <audio
-            ref={audioRef}
-            src={URL.createObjectURL(recordedBlob)}
-            onEnded={() => setIsPlaying(false)}
-          />
-          
-          <button
-            onClick={togglePlayback}
-            className="text-blue-600 hover:text-blue-700 flex-shrink-0"
-          >
-            {isPlaying ? <BsStop size={20} /> : <BsPlay size={20} />}
-          </button>
-
-          <div className="flex-1 flex items-center gap-2">
-            <div className="bg-blue-100 rounded-full p-2">
-              <BsMic size={16} className="text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-800">Voice Message</p>
-              <p className="text-xs text-gray-500">{formatTime(duration)}</p>
-            </div>
-          </div>
-
-          <button
-            onClick={handleSend}
-            className="text-green-600 hover:text-green-700 flex-shrink-0"
-          >
-            <RiSendPlaneFill size={20} />
-          </button>
-
-          <button
-            onClick={handleCancel}
-            className="text-red-600 hover:text-red-700 flex-shrink-0"
-          >
-            <RiCloseLine size={20} />
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   if (isRecording) {
     return (
-      <div className="bg-gradient-to-r from-blue-50 to-blue-100 border-t border-blue-200 p-4">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 flex-1">
-              <div className="animate-pulse">
-                <BsMicFill size={24} className="text-red-600" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-800">Recording...</p>
-                <p className="text-xs text-gray-600">{formatTime(duration)}</p>
-              </div>
-            </div>
-
-            <button
-              onClick={stopRecording}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-            >
-              <BsStop size={16} />
-              Stop
-            </button>
-
-            <button
-              onClick={handleCancel}
-              className="text-gray-600 hover:text-gray-700"
-            >
-              <RiCloseLine size={20} />
-            </button>
+      <div className="flex items-center gap-3 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-3">
+        <div className="flex items-center gap-2 flex-1">
+          <div className="animate-pulse">
+            <BsMicFill size={20} className="text-red-600" />
           </div>
-
-          {/* Waveform visualization */}
-          <canvas
-            ref={canvasRef}
-            width={300}
-            height={80}
-            className="w-full border border-blue-300 rounded-lg bg-white"
-          />
+          <div>
+            <p className="text-sm font-semibold text-gray-800">Recording...</p>
+            <p className="text-xs text-gray-600">{formatTime(duration)}</p>
+          </div>
         </div>
+
+        {/* Waveform Canvas */}
+        <canvas
+          ref={canvasRef}
+          width={150}
+          height={50}
+          className="border border-blue-300 rounded flex-1"
+        />
+
+        <button
+          onClick={stopRecording}
+          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded flex items-center gap-2 whitespace-nowrap"
+        >
+          <BsStop size={14} />
+          Stop
+        </button>
+
+        <button
+          onClick={handleCancel}
+          className="text-gray-600 hover:text-gray-700"
+        >
+          <RiCloseLine size={20} />
+        </button>
       </div>
     );
   }
 
-  return (
-    <button
-      onClick={startRecording}
-      className="text-gray-600 hover:text-blue-600 flex-shrink-0"
-      title="Record voice message"
-    >
-      <BsMic size={20} />
-    </button>
-  );
+  return null;
 };
