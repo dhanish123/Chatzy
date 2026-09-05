@@ -32,12 +32,22 @@ export const MediaDropdown = ({ onFileSelect, isUploading }) => {
 
   const validateFileSize = (file, type) => {
     let maxSize;
+    
+    // For photo-video type
     if (type === 'photo-video') {
       maxSize = file.type.startsWith('video/') 
         ? FILE_SIZE_LIMITS.video * 1024 * 1024
         : FILE_SIZE_LIMITS.image * 1024 * 1024;
-    } else {
-      maxSize = FILE_SIZE_LIMITS.file * 1024 * 1024;
+    } 
+    // For files type - allow images/videos too
+    else {
+      if (file.type.startsWith('image/')) {
+        maxSize = FILE_SIZE_LIMITS.image * 1024 * 1024;
+      } else if (file.type.startsWith('video/')) {
+        maxSize = FILE_SIZE_LIMITS.video * 1024 * 1024;
+      } else {
+        maxSize = FILE_SIZE_LIMITS.file * 1024 * 1024;
+      }
     }
 
     if (file.size > maxSize) {
@@ -53,11 +63,11 @@ export const MediaDropdown = ({ onFileSelect, isUploading }) => {
     if (file) {
       setError('');
       if (validateFileSize(file, uploadType)) {
-        // For photo/video, upload directly without preview
+        // For photo/video button, upload directly without preview
         if (uploadType === 'photo-video') {
           onFileSelect(file, true); // true = skipPreview
         } else {
-          // For files, show preview
+          // For files button, show preview
           onFileSelect(file, false);
         }
         setShowDropdown(false);
@@ -96,7 +106,7 @@ export const MediaDropdown = ({ onFileSelect, isUploading }) => {
         accept={
           uploadType === 'photo-video'
             ? 'image/*,video/*'
-            : '.pdf,.doc,.docx,.txt,.xls,.xlsx,.zip,.rar'
+            : 'image/*,video/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.zip,.rar'
         }
       />
 
@@ -128,8 +138,8 @@ export const MediaDropdown = ({ onFileSelect, isUploading }) => {
             >
               <AiOutlineFile size={20} className="text-green-600" />
               <div>
-                <p className="font-medium text-gray-800">Files</p>
-                <p className="text-xs text-gray-500">Documents & files: max 50MB</p>
+                <p className="font-medium text-gray-800">Photos, Videos & Files</p>
+                <p className="text-xs text-gray-500">Images, videos, documents & all files</p>
               </div>
             </button>
           </div>
