@@ -380,4 +380,3 @@ export const removeMember = async (req, res, next) => {
     next(error);
   }
 };
-};
