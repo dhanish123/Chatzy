@@ -7,6 +7,7 @@ import { VoiceRecorder } from './VoiceRecorder.jsx';
 import { EmojiPickerPopup } from './EmojiPickerPopup.jsx';
 import { MediaDropdown } from './MediaDropdown.jsx';
 import { MediaPreview } from './MediaPreview.jsx';
+import { AlertDialog } from './AlertDialog.jsx';
 
 export const MessageInput = ({ 
   onSend, 
@@ -25,6 +26,7 @@ export const MessageInput = ({
   const [isRecording, setIsRecording] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [showAlert, setShowAlert] = useState(false);
   const fileInputRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
@@ -95,7 +97,7 @@ export const MessageInput = ({
       setShowPreview(false);
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Upload failed. Please try again.');
+      setShowAlert(true);
     } finally {
       setUploading(false);
     }
@@ -198,6 +200,15 @@ export const MessageInput = ({
           setShowPreview(false);
         }}
         isUploading={uploading}
+      />
+
+      {/* Upload Error Alert */}
+      <AlertDialog
+        isOpen={showAlert}
+        type="error"
+        title="Upload Failed"
+        message="Upload failed. Please try again."
+        onClose={() => setShowAlert(false)}
       />
     </div>
   );

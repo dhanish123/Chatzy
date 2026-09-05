@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { BsMicFill } from 'react-icons/bs';
 import { RiCloseLine } from 'react-icons/ri';
+import { AlertDialog } from './AlertDialog';
 
 export const VoiceRecorder = ({ onSend, onCancel }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);
+  const [showAlert, setShowAlert] = useState(false);
   const mediaRecorderRef = useRef(null);
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
@@ -70,7 +72,7 @@ export const VoiceRecorder = ({ onSend, onCancel }) => {
       drawWaveform();
     } catch (error) {
       console.error('Error accessing microphone:', error);
-      alert('Unable to access microphone. Please check permissions.');
+      setShowAlert(true);
     }
   };
 
@@ -194,5 +196,16 @@ export const VoiceRecorder = ({ onSend, onCancel }) => {
     );
   }
 
-  return null;
+  return (
+    <AlertDialog
+      isOpen={showAlert}
+      type="error"
+      title="Microphone Error"
+      message="Unable to access microphone. Please check permissions."
+      onClose={() => {
+        setShowAlert(false);
+        onCancel();
+      }}
+    />
+  );
 };
