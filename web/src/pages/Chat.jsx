@@ -25,6 +25,14 @@ export const Chat = () => {
         ]);
         setConversations(convRes.data);
         setGroups(groupRes.data);
+
+        // Re-sync selectedConversation with fresh data from server
+        if (selectedConversation && convRes.data.length > 0) {
+          const updatedConv = convRes.data.find(c => c._id === selectedConversation._id);
+          if (updatedConv) {
+            setSelectedConversation(updatedConv);
+          }
+        }
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -33,7 +41,7 @@ export const Chat = () => {
     };
 
     loadData();
-  }, [setConversations, setGroups]);
+  }, [setConversations, setGroups, setSelectedConversation]);
 
   // Initialize socket and listen for friend acceptance events
   useEffect(() => {
