@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { BsStop } from 'react-icons/bs';
+import { BsStop, BsMicFill } from 'react-icons/bs';
 import { RiCloseLine } from 'react-icons/ri';
 
 export const VoiceRecorder = ({ onSend, onCancel }) => {
