@@ -12,24 +12,27 @@ export const AddFriends = () => {
   const [tab, setTab] = useState('search');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [friendsList, setFriendsList] = useState([]);
   const { pendingRequests, sentRequests, setPendingRequests, setSentRequests } = useFriendStore();
   const { conversations, setConversations } = useChatStore();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const loadRequests = async () => {
+    const loadRequestsAndFriends = async () => {
       try {
-        const [pending, sent] = await Promise.all([
+        const [pending, sent, friends] = await Promise.all([
           friendAPI.getPendingRequests(),
-          friendAPI.getSentRequests()
+          friendAPI.getSentRequests(),
+          friendAPI.getFriends()
         ]);
         setPendingRequests(pending.data);
         setSentRequests(sent.data);
+        setFriendsList(friends.data);
       } catch (error) {
         console.error('Error loading requests:', error);
       }
     };
-    loadRequests();
+    loadRequestsAndFriends();
   }, []);
 
   // Real-time search as user types
@@ -139,24 +142,59 @@ export const AddFriends = () => {
               </div>
 
               <div className="space-y-3">
-                {searchResults.map(user => (
-                  <div key={user._id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Avatar src={user.profileImage} initials={user.username[0]} />
-                      <div>
-                        <p className="font-medium">{user.username}</p>
-                        <p className="text-sm text-gray-500">{user.email}</p>
+                {searchResults.map(user => {
+                  // Check if user is already a friend
+                  const isFriend = friendsList.some(f => f._id === user._id);
+                  // Check if there's a pending request from this user
+                  const hasPendingRequest = pendingRequests.some(r => r.senderId._id === user._id);
+                  // Check if we sent a request
+                  const hasSentRequest = sentRequests.some(r => r.receiverId._id === user._id);
+
+                  return (
+                    <div key={user._id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Avatar src={user.profileImage} initials={user.username[0]} />
+                        <div>
+                          <p className="font-medium">{user.username}</p>
+                          <p className="text-sm text-gray-500">{user.email}</p>
+                        </div>
                       </div>
+                      {isFriend ? (
+                        <Button
+                          disabled
+                          variant="primary"
+                          size="sm"
+                        >
+                          Friends
+                        </Button>
+                      ) : hasPendingRequest ? (
+                        <Button
+                          onClick={() => handleAcceptRequest(pendingRequests.find(r => r.senderId._id === user._id)._id, user._id)}
+                          variant="primary"
+                          size="sm"
+                        >
+                          Accept
+                        </Button>
+                      ) : hasSentRequest ? (
+                        <Button
+                          onClick={() => handleCancelRequest(sentRequests.find(r => r.receiverId._id === user._id)._id)}
+                          variant="secondary"
+                          size="sm"
+                        >
+                          Pending
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => handleSendRequest(user._id)}
+                          variant="primary"
+                          size="sm"
+                        >
+                          Invite
+                        </Button>
+                      )}
                     </div>
-                    <Button
-                      onClick={() => handleSendRequest(user._id)}
-                      variant="primary"
-                      size="sm"
-                    >
-                      Invite
-                    </Button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
