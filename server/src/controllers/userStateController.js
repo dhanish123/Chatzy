@@ -1,9 +1,10 @@
 import { UserState } from '../models/UserState.js';
+import { User } from '../models/User.js';
 
 // Get user state (selectedConversation, selectedGroup)
 export const getUserState = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.userId;
 
     let userState = await UserState.findOne({ userId })
       .populate('selectedConversationId')
@@ -28,7 +29,7 @@ export const getUserState = async (req, res) => {
 // Save selected conversation
 export const setSelectedConversation = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.userId;
     const { conversationId } = req.body;
 
     let userState = await UserState.findOne({ userId });
@@ -54,7 +55,7 @@ export const setSelectedConversation = async (req, res) => {
 // Save selected group
 export const setSelectedGroup = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.userId;
     const { groupId } = req.body;
 
     let userState = await UserState.findOne({ userId });
@@ -80,7 +81,7 @@ export const setSelectedGroup = async (req, res) => {
 // Clear user state
 export const clearUserState = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.userId;
 
     let userState = await UserState.findOne({ userId });
 
