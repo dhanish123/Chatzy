@@ -1,38 +1,72 @@
 import { Message } from '../models/Message.js';
 import { Conversation } from '../models/Conversation.js';
+import { Group } from '../models/Group.js';
 
 export const getMessages = async (req, res, next) => {
   try {
     const { conversationId } = req.params;
     const { limit = 50, skip = 0 } = req.query;
 
-    const conversation = await Conversation.findById(conversationId);
-    if (!conversation) {
-      return res.status(404).json({ message: 'Conversation not found' });
+    // Check if it's a group or conversation
+    let clearTimestamp = null;
+
+    // First try as conversation
+    let conversation = await Conversation.findById(conversationId);
+    if (conversation) {
+      const participant = conversation.participants.find(
+        p => p.userId.toString() === req.userId.toString()
+      );
+
+      if (!participant) {
+        return res.status(403).json({ message: 'Unauthorized' });
+      }
+
+      clearTimestamp = participant.clearedAt;
+
+      // Build query - only show messages created after clearedAt
+      const query = { conversationId };
+      if (clearTimestamp) {
+        query.createdAt = { $gte: clearTimestamp };
+      }
+
+      const messages = await Message.find(query)
+        .populate('senderId', '-password')
+        .populate('replyTo')
+        .sort({ createdAt: -1 })
+        .skip(parseInt(skip))
+        .limit(parseInt(limit));
+
+      return res.json(messages.reverse());
     }
 
-    const participant = conversation.participants.find(
-      p => p.userId.toString() === req.userId.toString()
-    );
+    // Try as group
+    const group = await Group.findById(conversationId);
+    if (group) {
+      const isMember = group.members.some(m => m.userId.toString() === req.userId.toString());
+      if (!isMember) {
+        return res.status(403).json({ message: 'Unauthorized' });
+      }
 
-    if (!participant) {
-      return res.status(403).json({ message: 'Unauthorized' });
+      const cleared = group.clearedAt?.find(c => c.userId.toString() === req.userId.toString());
+      clearTimestamp = cleared?.timestamp;
+
+      // Build query - only show messages created after clearedAt
+      const query = { groupId: conversationId };
+      if (clearTimestamp) {
+        query.createdAt = { $gte: clearTimestamp };
+      }
+
+      const messages = await Message.find(query)
+        .populate('senderId', '-password')
+        .populate('replyTo')
+        .sort({ createdAt: -1 })
+        .skip(parseInt(skip))
+        .limit(parseInt(limit));
+
+      return res.json(messages.reverse());
     }
 
-    // Build query - only show messages created after clearedAt
-    const query = { conversationId };
-    if (participant.clearedAt) {
-      query.createdAt = { $gte: participant.clearedAt };
-    }
-
-    const messages = await Message.find(query)
-      .populate('senderId', '-password')
-      .populate('replyTo')
-      .sort({ createdAt: -1 })
-      .skip(parseInt(skip))
-      .limit(parseInt(limit));
-
-    res.json(messages.reverse());
+    return res.status(404).json({ message: 'Conversation or group not found' });
   } catch (error) {
     next(error);
   }
@@ -46,38 +80,70 @@ export const createMessage = async (req, res, next) => {
       return res.status(422).json({ message: 'Conversation ID is required' });
     }
 
-    const conversation = await Conversation.findById(conversationId);
-    if (!conversation) {
-      return res.status(404).json({ message: 'Conversation not found' });
+    // Check if it's a group or conversation
+    let conversation = await Conversation.findById(conversationId);
+    let group = null;
+
+    if (conversation) {
+      const isParticipant = conversation.participants.some(
+        p => p.userId.toString() === req.userId.toString()
+      );
+
+      if (!isParticipant) {
+        return res.status(403).json({ message: 'Unauthorized' });
+      }
+
+      const message = new Message({
+        conversationId,
+        senderId: req.userId,
+        content: content || '',
+        mediaUrl,
+        mediaType,
+        replyTo,
+        status: 'sent'
+      });
+
+      await message.save();
+      await message.populate('senderId', '-password');
+      await message.populate('replyTo');
+
+      conversation.lastMessage = message._id;
+      conversation.lastMessageAt = new Date();
+      await conversation.save();
+
+      return res.status(201).json(message);
     }
 
-    const isParticipant = conversation.participants.some(
-      p => p.userId.toString() === req.userId.toString()
-    );
+    // Try as group
+    group = await Group.findById(conversationId);
+    if (group) {
+      const isMember = group.members.some(m => m.userId.toString() === req.userId.toString());
+      if (!isMember) {
+        return res.status(403).json({ message: 'Unauthorized' });
+      }
 
-    if (!isParticipant) {
-      return res.status(403).json({ message: 'Unauthorized' });
+      const message = new Message({
+        groupId: conversationId,
+        senderId: req.userId,
+        content: content || '',
+        mediaUrl,
+        mediaType,
+        replyTo,
+        status: 'sent'
+      });
+
+      await message.save();
+      await message.populate('senderId', '-password');
+      await message.populate('replyTo');
+
+      group.lastMessage = message._id;
+      group.lastMessageAt = new Date();
+      await group.save();
+
+      return res.status(201).json(message);
     }
 
-    const message = new Message({
-      conversationId,
-      senderId: req.userId,
-      content: content || '',
-      mediaUrl,
-      mediaType,
-      replyTo,
-      status: 'sent'
-    });
-
-    await message.save();
-    await message.populate('senderId', '-password');
-    await message.populate('replyTo');
-
-    conversation.lastMessage = message._id;
-    conversation.lastMessageAt = new Date();
-    await conversation.save();
-
-    res.status(201).json(message);
+    return res.status(404).json({ message: 'Conversation or group not found' });
   } catch (error) {
     next(error);
   }

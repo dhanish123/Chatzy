@@ -12,7 +12,7 @@ import { Loader } from '../components/Loader.jsx';
 export const Chat = () => {
   const { user, token } = useAuthStore();
   const { conversations, selectedConversation, setConversations, setSelectedConversation } = useChatStore();
-  const { groups } = useGroupStore();
+  const { groups, setGroups } = useGroupStore();
   const { friends } = useFriendStore();
   const [loading, setLoading] = useState(true);
 
@@ -24,6 +24,7 @@ export const Chat = () => {
           groupAPI.getAll()
         ]);
         setConversations(convRes.data);
+        setGroups(groupRes.data);
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -32,7 +33,7 @@ export const Chat = () => {
     };
 
     loadData();
-  }, [setConversations]);
+  }, [setConversations, setGroups]);
 
   // Initialize socket and listen for friend acceptance events
   useEffect(() => {

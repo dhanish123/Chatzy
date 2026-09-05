@@ -5,6 +5,7 @@ import { AudioMessage } from './AudioMessage.jsx';
 export const MessageBubble = ({
   message,
   isOwn = false,
+  isGroup = false,
   onReply = null,
   onEdit = null,
   onDelete = null,
@@ -19,9 +20,22 @@ export const MessageBubble = ({
       onMouseEnter={() => onHover?.(message._id)}
       onMouseLeave={() => onHover?.(null)}
     >
-      {!isOwn && <Avatar src="" initials="U" size="sm" className="mr-2" />}
+      {!isOwn && (
+        <Avatar 
+          src={message.senderId?.profileImage} 
+          initials={message.senderId?.username?.[0]} 
+          size="sm" 
+          className="mr-2"
+        />
+      )}
       
       <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
+        {isGroup && !isOwn && (
+          <p className="text-xs font-semibold text-gray-700 mb-1">
+            {message.senderId?.username}
+          </p>
+        )}
+        
         {message.replyTo && (
           <div className={`text-xs mb-1 p-2 rounded ${isOwn ? 'bg-blue-100' : 'bg-gray-100'}`}>
             <p className="font-semibold">Reply to</p>

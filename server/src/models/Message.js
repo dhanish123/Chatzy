@@ -4,7 +4,12 @@ const messageSchema = new mongoose.Schema({
   conversationId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Conversation',
-    required: true
+    default: null
+  },
+  groupId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Group',
+    default: null
   },
   senderId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -39,6 +44,15 @@ const messageSchema = new mongoose.Schema({
   },
   editedAt: {
     type: Date,
+    default: null
+  },
+  isSystemMessage: {
+    type: Boolean,
+    default: false
+  },
+  systemMessageType: {
+    type: String,
+    enum: ['groupCreated', 'memberAdded', 'memberRemoved', 'groupNameChanged', null],
     default: null
   },
   status: {

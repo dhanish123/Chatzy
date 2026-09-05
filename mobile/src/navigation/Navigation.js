@@ -8,6 +8,7 @@ import { LoginScreen } from '../screens/LoginScreen.js';
 import { RegisterScreen } from '../screens/RegisterScreen.js';
 import { ChatListScreen } from '../screens/ChatListScreen.js';
 import { ChatScreen } from '../screens/ChatScreen.js';
+import { CreateGroupScreen } from '../screens/CreateGroupScreen.js';
 import { ProfileScreen } from '../screens/ProfileScreen.js';
 import { AddFriendsScreen } from '../screens/AddFriendsScreen.js';
 import { BlockedScreen } from '../screens/BlockedScreen.js';
@@ -36,6 +37,7 @@ const ChatStack = () => (
   >
     <Stack.Screen name="ChatList" component={ChatListScreen} />
     <Stack.Screen name="Chat" component={ChatScreen} />
+    <Stack.Screen name="CreateGroup" component={CreateGroupScreen} />
   </Stack.Navigator>
 );
 

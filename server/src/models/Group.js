@@ -15,8 +15,14 @@ const groupSchema = new mongoose.Schema({
     required: true
   },
   members: [{
-    userId: mongoose.Schema.Types.ObjectId,
-    joinedAt: Date,
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    joinedAt: {
+      type: Date,
+      default: new Date()
+    },
     unreadCount: {
       type: Number,
       default: 0

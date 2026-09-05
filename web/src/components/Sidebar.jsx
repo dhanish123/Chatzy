@@ -1,37 +1,55 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RiMenu3Line, RiSearchLine, RiAddLine } from 'react-icons/ri';
 import { useAuthStore } from '../stores/authStore.js';
 import { useChatStore } from '../stores/chatStore.js';
 import { useGroupStore } from '../stores/groupStore.js';
 import { Avatar } from './Avatar.jsx';
 import { Input } from './Input.jsx';
-import { Modal } from './Modal.jsx';
 import { UserMenu } from './UserMenu.jsx';
 import { ConversationList } from './ConversationList.jsx';
 import { GroupList } from './GroupList.jsx';
+import { CreateGroupModal } from './CreateGroupModal.jsx';
 
 export const Sidebar = () => {
   const { user } = useAuthStore();
+  const { setSelectedGroup } = useGroupStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandPrivate, setExpandPrivate] = useState(true);
   const [expandGroups, setExpandGroups] = useState(true);
+  const [imageTimestamp, setImageTimestamp] = useState(Date.now());
 
   const initials = user?.username?.[0]?.toUpperCase() || 'U';
+
+  // Update timestamp when user profile image changes
+  useEffect(() => {
+    setImageTimestamp(Date.now());
+  }, [user?.profileImage]);
+
+  const getProfileImageUrl = () => {
+    if (!user?.profileImage) return '';
+    // Add cache-busting query parameter
+    return `${user.profileImage}?t=${imageTimestamp}`;
+  };
+
+  const handleGroupCreated = (group) => {
+    setSelectedGroup(group);
+    setShowCreateGroup(false);
+  };
 
   return (
     <div className="w-full md:w-80 bg-white border-r border-gray-200 flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">Chatzy</h1>
+          <h1 className="text-2xl font-bold">Chatzy<span className="text-gray-500 font-normal text-lg ml-2">- {user?.username}</span></h1>
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center gap-2 hover:bg-gray-100 p-2 rounded-lg"
             >
-              <Avatar src={user?.profileImage} initials={initials} size="sm" />
+              <Avatar src={getProfileImageUrl()} initials={initials} size="sm" />
             </button>
             {showUserMenu && <UserMenu onClose={() => setShowUserMenu(false)} />}
           </div>
@@ -77,30 +95,12 @@ export const Sidebar = () => {
         </div>
       </div>
 
-      <Modal isOpen={showCreateGroup} onClose={() => setShowCreateGroup(false)} title="Create Group">
-        <CreateGroupForm onClose={() => setShowCreateGroup(false)} />
-      </Modal>
-    </div>
-  );
-};
-
-const CreateGroupForm = ({ onClose }) => {
-  const [groupName, setGroupName] = useState('');
-  const { addGroup } = useGroupStore();
-
-  const handleCreate = async () => {
-    // Implementation will be added in full version
-    onClose();
-  };
-
-  return (
-    <div>
-      <Input
-        label="Group Name"
-        placeholder="Group name"
-        value={groupName}
-        onChange={(e) => setGroupName(e.target.value)}
+      <CreateGroupModal
+        isOpen={showCreateGroup}
+        onClose={() => setShowCreateGroup(false)}
+        onGroupCreated={handleGroupCreated}
       />
     </div>
   );
 };
+

@@ -5,6 +5,7 @@ import { useChatStore } from '../stores/chatStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { conversationAPI, groupAPI } from '../services/api.js';
 import { getSocket, initializeSocket, joinUserRoom } from '../services/socket.js';
+import { MaterialIcons } from '@expo/vector-icons';
 
 const styles = StyleSheet.create({
   container: {
@@ -16,12 +17,21 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb'
+    borderBottomColor: '#e5e7eb',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  headerContent: {
+    flex: 1
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#000000'
+  },
+  headerButton: {
+    padding: 8
   },
   list: {
     flex: 1
@@ -159,7 +169,15 @@ export const ChatListScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Chatzy</Text>
+        <View style={styles.headerContent}>
+          <Text style={styles.title}>Chatzy</Text>
+        </View>
+        <Pressable
+          style={styles.headerButton}
+          onPress={() => navigation.navigate('CreateGroup')}
+        >
+          <MaterialIcons name="group-add" size={24} color="#3b82f6" />
+        </Pressable>
       </View>
 
       {loading ? (

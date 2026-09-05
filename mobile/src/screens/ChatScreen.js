@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, FlatList, StyleSheet, TextInput, Pressable, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TextInput, Pressable, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Image } from 'react-native';
 import { useChatStore } from '../stores/chatStore.js';
 import { useAuthStore } from '../stores/authStore.js';
-import { messageAPI, conversationAPI, uploadAPI, blockAPI } from '../services/api.js';
+import { messageAPI, conversationAPI, uploadAPI, blockAPI, groupAPI } from '../services/api.js';
 import { getSocket, joinConversation, leaveConversation } from '../services/socket.js';
 import { VoiceRecorder } from '../components/VoiceRecorder.js';
 import { EmojiPickerModal } from '../components/EmojiPickerModal.js';
@@ -31,6 +31,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6b7280',
     marginTop: 2
+  },
+  headerProfileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#3b82f6'
+  },
+  headerProfileInitials: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#3b82f6',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  headerProfileInitialsText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#ffffff'
   },
   messagesList: {
     flex: 1,
@@ -135,6 +154,12 @@ export const ChatScreen = () => {
   const isGroup = !!selectedGroup;
   const conversationId = isGroup ? selectedGroup._id : selectedConversation?._id;
   const otherUser = !isGroup ? selectedConversation?.participants?.find(p => p.userId._id !== user?._id)?.userId : null;
+  const [imageTimestamp, setImageTimestamp] = useState(Date.now());
+
+  // Update timestamp when other user's profile image changes
+  useEffect(() => {
+    setImageTimestamp(Date.now());
+  }, [otherUser?.profileImage]);
 
   useEffect(() => {
     if (!conversationId) return;
@@ -368,15 +393,31 @@ export const ChatScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={[styles.header, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>
-            {isGroup ? selectedGroup?.name : otherUser?.username}
-          </Text>
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           {!isGroup && otherUser && (
-            <Text style={styles.headerSubtitle}>
-              {otherUser.isOnline ? 'Online' : `Last seen ${new Date(otherUser.lastSeen).toLocaleTimeString()}`}
-            </Text>
+            otherUser.profileImage ? (
+              <Image 
+                source={{ uri: `${otherUser.profileImage}?t=${imageTimestamp}` }}
+                style={styles.headerProfileImage}
+              />
+            ) : (
+              <View style={styles.headerProfileInitials}>
+                <Text style={styles.headerProfileInitialsText}>
+                  {otherUser.username?.[0]?.toUpperCase() || 'U'}
+                </Text>
+              </View>
+            )
           )}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle}>
+              {isGroup ? selectedGroup?.name : otherUser?.username}
+            </Text>
+            {!isGroup && otherUser && (
+              <Text style={styles.headerSubtitle}>
+                {otherUser.isOnline ? 'Online' : `Last seen ${new Date(otherUser.lastSeen).toLocaleTimeString()}`}
+              </Text>
+            )}
+          </View>
         </View>
         {!isGroup && otherUser && (
           <ChatHeaderMenu

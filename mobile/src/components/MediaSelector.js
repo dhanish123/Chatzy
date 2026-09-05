@@ -3,6 +3,28 @@ import { View, Text, Pressable, StyleSheet, Modal, Alert } from 'react-native';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
+
+// File size limits (in bytes)
+const FILE_SIZE_LIMITS = {
+  image: 10 * 1024 * 1024, // 10 MB
+  video: 100 * 1024 * 1024, // 100 MB
+  audio: 50 * 1024 * 1024, // 50 MB
+  file: 50 * 1024 * 1024 // 50 MB
+};
+
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+};
+
+const showSizeLimits = () => {
+  const limits = `Maximum File Sizes:\n\n📷 Images: ${formatFileSize(FILE_SIZE_LIMITS.image)}\n🎥 Videos: ${formatFileSize(FILE_SIZE_LIMITS.video)}\n🔊 Audio: ${formatFileSize(FILE_SIZE_LIMITS.audio)}\n📄 Files: ${formatFileSize(FILE_SIZE_LIMITS.file)}`;
+  Alert.alert('File Size Limits', limits);
+};
 
 const styles = StyleSheet.create({
   triggerButton: {
@@ -98,6 +120,37 @@ export const MediaSelector = ({ onMediaSelect, isUploading }) => {
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
+        
+        // Get file size
+        try {
+          const fileInfo = await FileSystem.getInfoAsync(asset.uri);
+          const fileSize = fileInfo.size || 0;
+          
+          // Determine type and limit
+          const mediaType = asset.type === 'video' ? 'video' : 'image';
+          const limit = FILE_SIZE_LIMITS[mediaType];
+          
+          if (fileSize > limit) {
+            Alert.alert(
+              'File Too Large',
+              `Maximum size for ${mediaType}s: ${formatFileSize(limit)}\n\nYour file: ${formatFileSize(fileSize)}`,
+              [
+                {
+                  text: 'View Limits',
+                  onPress: showSizeLimits
+                },
+                {
+                  text: 'OK',
+                  style: 'cancel'
+                }
+              ]
+            );
+            return;
+          }
+        } catch (err) {
+          console.warn('Could not get file size:', err);
+        }
+        
         onMediaSelect({
           uri: asset.uri,
           type: asset.type,
@@ -120,6 +173,34 @@ export const MediaSelector = ({ onMediaSelect, isUploading }) => {
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
+        
+        // Get file size
+        try {
+          const fileInfo = await FileSystem.getInfoAsync(asset.uri);
+          const fileSize = fileInfo.size || 0;
+          
+          const limit = FILE_SIZE_LIMITS.file;
+          if (fileSize > limit) {
+            Alert.alert(
+              'File Too Large',
+              `Maximum file size: ${formatFileSize(limit)}\n\nYour file: ${formatFileSize(fileSize)}`,
+              [
+                {
+                  text: 'View Limits',
+                  onPress: showSizeLimits
+                },
+                {
+                  text: 'OK',
+                  style: 'cancel'
+                }
+              ]
+            );
+            return;
+          }
+        } catch (err) {
+          console.warn('Could not get file size:', err);
+        }
+        
         onMediaSelect({
           uri: asset.uri,
           type: 'file',

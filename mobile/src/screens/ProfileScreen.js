@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, SafeAreaView, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, SafeAreaView, ScrollView, Alert, Image } from 'react-native';
 import { useAuthStore } from '../stores/authStore.js';
 import { useNavigation } from '@react-navigation/native';
 import { userAPI } from '../services/api.js';
 import { Button } from '../components/Button.js';
 import { Input } from '../components/Input.js';
 import { disconnectSocket } from '../services/socket.js';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import { MaterialIcons } from '@expo/vector-icons';
 
 const styles = StyleSheet.create({
   container: {
@@ -78,6 +81,59 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#000000',
     fontWeight: '500'
+  },
+  profileImageSection: {
+    alignItems: 'center',
+    marginBottom: 24
+  },
+  profileImageContainer: {
+    position: 'relative',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 12
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#3b82f6'
+  },
+  profileInitials: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#3b82f6',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  profileInitialsText: {
+    fontSize: 40,
+    fontWeight: 'bold',
+    color: '#ffffff'
+  },
+  uploadButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#3b82f6',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff'
+  },
+  uploadButtonText: {
+    fontSize: 12,
+    color: '#ffffff',
+    fontWeight: 'bold'
+  },
+  username: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000000'
   }
 });
 
@@ -86,6 +142,7 @@ export const ProfileScreen = () => {
   const [username, setUsername] = useState(user?.username || '');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [imageTimestamp, setImageTimestamp] = useState(Date.now());
   const navigation = useNavigation();
 
   const handleUpdateProfile = async () => {
@@ -100,6 +157,83 @@ export const ProfileScreen = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleImageUpload = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+        aspect: [1, 1]
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+        
+        // Get file size
+        try {
+          const fileInfo = await FileSystem.getInfoAsync(asset.uri);
+          const fileSize = fileInfo.size || 0;
+          
+          const limit = 10 * 1024 * 1024; // 10 MB for images
+          if (fileSize > limit) {
+            Alert.alert(
+              'File Too Large',
+              `Maximum image size: 10 MB\n\nYour file: ${(fileSize / 1024 / 1024).toFixed(2)} MB`
+            );
+            return;
+          }
+        } catch (err) {
+          console.warn('Could not get file size:', err);
+        }
+
+        setLoading(true);
+        const response = await userAPI.uploadProfileImage({
+          uri: asset.uri,
+          type: 'image/jpeg',
+          name: 'profile.jpg'
+        });
+
+        // Update user with cache-busting timestamp
+        const updatedUser = {
+          ...response.data,
+          profileImage: response.data.profileImage ? `${response.data.profileImage}?t=${Date.now()}` : null
+        };
+
+        setUser(updatedUser);
+        setImageTimestamp(Date.now());
+        setMessage('Profile image updated');
+        setTimeout(() => setMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      Alert.alert('Error', 'Failed to upload image');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', onPress: () => {}, style: 'cancel' },
+      {
+        text: 'Logout',
+        onPress: () => {
+          logout();
+          disconnectSocket();
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Login' }]
+          });
+        },
+        style: 'destructive'
+      }
+    ]);
+  };
+
+  const getProfileImageUrl = () => {
+    if (!user?.profileImage) return null;
+    return `${user.profileImage}?t=${imageTimestamp}`;
   };
 
   const handleLogout = () => {
@@ -133,6 +267,32 @@ export const ProfileScreen = () => {
           </View>
         )}
 
+        {/* Profile Image Section */}
+        <View style={styles.profileImageSection}>
+          <View style={styles.profileImageContainer}>
+            {getProfileImageUrl() ? (
+              <Image 
+                source={{ uri: getProfileImageUrl() }} 
+                style={styles.profileImage}
+              />
+            ) : (
+              <View style={styles.profileInitials}>
+                <Text style={styles.profileInitialsText}>
+                  {user?.username?.[0]?.toUpperCase() || 'U'}
+                </Text>
+              </View>
+            )}
+            <Pressable 
+              style={styles.uploadButton}
+              onPress={handleImageUpload}
+              disabled={loading}
+            >
+              <MaterialIcons name="camera-alt" size={16} color="#ffffff" />
+            </Pressable>
+          </View>
+          <Text style={styles.username}>{user?.username}</Text>
+        </View>
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account Information</Text>
           <View style={styles.infoBox}>
@@ -148,6 +308,7 @@ export const ProfileScreen = () => {
             value={username}
             onChangeText={setUsername}
             placeholder="Your username"
+            disabled={loading}
           />
           <Button
             title={loading ? 'Saving...' : 'Save Changes'}

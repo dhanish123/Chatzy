@@ -11,6 +11,7 @@ export const Profile = () => {
   const [username, setUsername] = useState(user?.username || '');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [imageTimestamp, setImageTimestamp] = useState(Date.now());
 
   const handleUpdateProfile = async () => {
     try {
@@ -33,10 +34,19 @@ export const Profile = () => {
     try {
       setLoading(true);
       const response = await userAPI.uploadProfileImage(file);
-      setUser(response.data);
+      
+      // Update user with cache-busting timestamp
+      const updatedUser = {
+        ...response.data,
+        profileImage: response.data.profileImage ? `${response.data.profileImage}?t=${Date.now()}` : null
+      };
+      
+      setUser(updatedUser);
+      setImageTimestamp(Date.now());
       setMessage('Profile image updated');
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
+      console.error('Image upload error:', error);
       setMessage('Failed to upload image');
     } finally {
       setLoading(false);
@@ -53,9 +63,18 @@ export const Profile = () => {
         )}
 
         <div className="flex justify-center mb-6">
-          <label className="cursor-pointer">
-            <Avatar src={user?.profileImage} initials={user?.username?.[0]} size="xl" />
-            <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+          <label className="cursor-pointer group">
+            <div className="relative">
+              <Avatar 
+                src={user?.profileImage ? `${user.profileImage}?t=${imageTimestamp}` : ''} 
+                initials={user?.username?.[0]} 
+                size="xl" 
+              />
+              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded-full flex items-center justify-center transition-all">
+                <span className="opacity-0 group-hover:opacity-100 text-white font-medium text-sm">Change</span>
+              </div>
+            </div>
+            <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" disabled={loading} />
           </label>
         </div>
 
@@ -64,12 +83,13 @@ export const Profile = () => {
             label="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            disabled={loading}
           />
 
           <Input
             label="Email"
             type="email"
-            value={user?.email}
+            value={user?.email || ''}
             disabled
           />
 

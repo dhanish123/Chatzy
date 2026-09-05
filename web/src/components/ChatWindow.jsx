@@ -2,12 +2,15 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../stores/authStore.js';
 import { useChatStore } from '../stores/chatStore.js';
 import { useGroupStore } from '../stores/groupStore.js';
-import { conversationAPI, messageAPI, blockAPI } from '../services/api.js';
+import { conversationAPI, messageAPI, blockAPI, groupAPI } from '../services/api.js';
 import { getSocket } from '../services/socket.js';
 import { MessageBubble } from './MessageBubble.jsx';
 import { MessageInput } from './MessageInput.jsx';
 import { ChatHeaderMenu } from './ChatHeaderMenu.jsx';
+import { GroupHeaderMenu } from './GroupHeaderMenu.jsx';
+import { SystemMessage } from './SystemMessage.jsx';
 import { Loader } from './Loader.jsx';
+import { Avatar } from './Avatar.jsx';
 
 export const ChatWindow = () => {
   const { user } = useAuthStore();
@@ -19,6 +22,7 @@ export const ChatWindow = () => {
   const [replyingTo, setReplyingTo] = useState(null);
   const [isUserBlocked, setIsUserBlocked] = useState(false);
   const [blockStatus, setBlockStatus] = useState({ blocked: false, blockedBy: false });
+  const [imageTimestamp, setImageTimestamp] = useState(Date.now());
   const messagesEndRef = useRef(null);
   const socket = getSocket();
 
@@ -35,6 +39,11 @@ export const ChatWindow = () => {
   }
 
   const otherUser = !isGroup ? selectedConversation?.participants?.find(p => p.userId._id !== user?._id)?.userId : null;
+
+  // Update timestamp when other user's profile image changes
+  useEffect(() => {
+    setImageTimestamp(Date.now());
+  }, [otherUser?.profileImage]);
 
   useEffect(() => {
     if (!conversationId) return;
@@ -58,18 +67,35 @@ export const ChatWindow = () => {
     loadMessages();
 
     if (socket) {
-      socket.emit('joinConversation', conversationId);
-      
-      const handleNewMessage = (message) => {
-        addMessage(message);
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      };
+      if (isGroup) {
+        socket.emit('joinGroup', conversationId);
+        
+        const handleGroupNewMessage = (message) => {
+          addMessage(message);
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        };
 
-      socket.on('newMessage', handleNewMessage);
-      return () => {
-        socket.off('newMessage', handleNewMessage);
-        socket.emit('leaveConversation', conversationId);
-      };
+        socket.on('groupNewMessage', handleGroupNewMessage);
+        
+        return () => {
+          socket.off('groupNewMessage', handleGroupNewMessage);
+          socket.emit('leaveGroup', conversationId);
+        };
+      } else {
+        socket.emit('joinConversation', conversationId);
+        
+        const handleNewMessage = (message) => {
+          addMessage(message);
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        };
+
+        socket.on('newMessage', handleNewMessage);
+        
+        return () => {
+          socket.off('newMessage', handleNewMessage);
+          socket.emit('leaveConversation', conversationId);
+        };
+      }
     }
   }, [conversationId, isGroup, selectedConversation, socket, addMessage]);
 
@@ -180,24 +206,61 @@ export const ChatWindow = () => {
     <div className="flex-1 flex flex-col h-screen bg-white">
       {/* Chat Header */}
       <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-        <div className="flex-1">
-          <h2 className="text-lg font-semibold">
-            {isGroup ? selectedGroup?.name : otherUser?.username}
-          </h2>
-          {!isGroup && otherUser && (
-            <p className="text-xs text-gray-500">
-              {otherUser.isOnline ? 'Online' : `Last seen ${new Date(otherUser.lastSeen).toLocaleTimeString()}`}
-            </p>
+        <div className="flex items-center gap-3 flex-1">
+          {isGroup ? (
+            <>
+              <Avatar 
+                src={selectedGroup?.image} 
+                initials={selectedGroup?.name?.[0]} 
+                size="md" 
+              />
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold">
+                  {selectedGroup?.name}
+                </h2>
+                <p className="text-xs text-gray-500">
+                  {selectedGroup?.members?.length} members
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              {otherUser && (
+                <Avatar 
+                  src={otherUser.profileImage ? `${otherUser.profileImage}?t=${imageTimestamp}` : ''} 
+                  initials={otherUser.username?.[0]} 
+                  size="md" 
+                />
+              )}
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold">
+                  {otherUser?.username}
+                </h2>
+                {otherUser && (
+                  <p className="text-xs text-gray-500">
+                    {otherUser.isOnline ? 'Online' : `Last seen ${new Date(otherUser.lastSeen).toLocaleTimeString()}`}
+                  </p>
+                )}
+              </div>
+            </>
           )}
         </div>
-        {!isGroup && otherUser && (
+        {isGroup ? (
+          <GroupHeaderMenu
+            groupId={conversationId}
+            onChatCleared={() => setMessages([])}
+            onUserLeft={() => {
+              // Handle user leaving group - navigate back or remove from list
+            }}
+          />
+        ) : otherUser ? (
           <ChatHeaderMenu
             conversationId={conversationId}
             otherUserId={otherUser._id}
             onChatCleared={() => setMessages([])}
             onUserBlocked={() => setBlockStatus({ ...blockStatus, blocked: true })}
           />
-        )}
+        ) : null}
       </div>
 
       {/* Messages */}
@@ -207,21 +270,26 @@ export const ChatWindow = () => {
             Start a conversation
           </div>
         ) : (
-          messages.map((msg) => (
-            <MessageBubble
-              key={msg._id}
-              message={msg}
-              isOwn={msg.senderId._id === user?._id}
-              onReply={(message) => {
-                setReplyingTo(message);
-              }}
-              onEdit={(message) => {
-                setEditingMessage(message);
-              }}
-              onDelete={handleDeleteMessage}
-              onHover={setHoveredMessage}
-            />
-          ))
+          messages.map((msg) => 
+            msg.isSystemMessage ? (
+              <SystemMessage key={msg._id} message={msg} />
+            ) : (
+              <MessageBubble
+                key={msg._id}
+                message={msg}
+                isOwn={msg.senderId._id === user?._id}
+                isGroup={isGroup}
+                onReply={(message) => {
+                  setReplyingTo(message);
+                }}
+                onEdit={(message) => {
+                  setEditingMessage(message);
+                }}
+                onDelete={handleDeleteMessage}
+                onHover={setHoveredMessage}
+              />
+            )
+          )
         )}
         <div ref={messagesEndRef} />
       </div>

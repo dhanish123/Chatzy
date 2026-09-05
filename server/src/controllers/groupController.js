@@ -32,15 +32,22 @@ export const createGroup = async (req, res, next) => {
       { path: 'members.userId', select: '-password' }
     ]);
 
-    // System message
+    // Create system message for group creation
+    const creator = await User.findById(req.userId);
     const systemMessage = new Message({
-      conversationId: null,
+      groupId: group._id,
       senderId: req.userId,
-      content: `${(await User.findById(req.userId)).username} created the group`,
-      mediaUrl: null,
+      content: `${creator.username} created the group`,
+      isSystemMessage: true,
+      systemMessageType: 'groupCreated',
       status: 'sent'
     });
-    // Store in groups later
+    await systemMessage.save();
+
+    // Update group's last message
+    group.lastMessage = systemMessage._id;
+    group.lastMessageAt = new Date();
+    await group.save();
 
     res.status(201).json(group);
   } catch (error) {
@@ -108,10 +115,12 @@ export const addGroupMembers = async (req, res, next) => {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
+    const addedMembers = [];
     for (const memberId of memberIds) {
       const exists = group.members.some(m => m.userId.toString() === memberId);
       if (!exists) {
         group.members.push({ userId: memberId, joinedAt: new Date() });
+        addedMembers.push(memberId);
       }
     }
 
@@ -119,6 +128,28 @@ export const addGroupMembers = async (req, res, next) => {
     await group.populate([
       { path: 'members.userId', select: '-password' }
     ]);
+
+    // Create system messages for added members
+    if (addedMembers.length > 0) {
+      const currentUser = await User.findById(req.userId);
+      for (const memberId of addedMembers) {
+        const addedUser = await User.findById(memberId);
+        const systemMessage = new Message({
+          groupId: group._id,
+          senderId: req.userId,
+          content: `${currentUser.username} added ${addedUser.username}`,
+          isSystemMessage: true,
+          systemMessageType: 'memberAdded',
+          status: 'sent'
+        });
+        await systemMessage.save();
+      }
+      
+      // Update last message
+      group.lastMessage = (await Message.findOne({ groupId: group._id }).sort({ createdAt: -1 }))._id;
+      group.lastMessageAt = new Date();
+      await group.save();
+    }
 
     res.json(group);
   } catch (error) {
@@ -135,10 +166,25 @@ export const leaveGroup = async (req, res, next) => {
       return res.status(404).json({ message: 'Group not found' });
     }
 
+    const currentUser = await User.findById(req.userId);
     group.members = group.members.filter(m => m.userId.toString() !== req.userId.toString());
+
+    // Create system message for member leaving
+    const systemMessage = new Message({
+      groupId: group._id,
+      senderId: req.userId,
+      content: `${currentUser.username} left the group`,
+      isSystemMessage: true,
+      systemMessageType: 'memberRemoved',
+      status: 'sent'
+    });
+    await systemMessage.save();
+
+    group.lastMessage = systemMessage._id;
+    group.lastMessageAt = new Date();
     await group.save();
 
-    res.json({ message: 'Left group' });
+    res.json({ message: 'Left group', group });
   } catch (error) {
     next(error);
   }

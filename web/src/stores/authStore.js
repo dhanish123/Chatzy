@@ -10,6 +10,11 @@ export const useAuthStore = create(
       error: null,
 
       setUser: (user) => set({ user }),
+      
+      updateUserProfileImage: (profileImage) => set((state) => ({
+        user: state.user ? { ...state.user, profileImage } : null
+      })),
+      
       setToken: (token) => set({ token }),
       setLoading: (loading) => set({ loading }),
       setError: (error) => set({ error }),
@@ -25,3 +30,4 @@ export const useAuthStore = create(
     }
   )
 );
+
