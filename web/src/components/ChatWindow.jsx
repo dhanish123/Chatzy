@@ -8,7 +8,7 @@ import { MessageBubble } from './MessageBubble.jsx';
 import { MessageInput } from './MessageInput.jsx';
 import { ChatHeaderMenu } from './ChatHeaderMenu.jsx';
 import { GroupHeaderMenu } from './GroupHeaderMenu.jsx';
-import { GroupMembersPanel } from './GroupMembersPanel.jsx';
+import { GroupMembersModal } from './GroupMembersModal.jsx';
 import { SystemMessage } from './SystemMessage.jsx';
 import { TypingIndicator } from './TypingIndicator.jsx';
 import { Loader } from './Loader.jsx';
@@ -27,6 +27,7 @@ export const ChatWindow = () => {
   const [imageTimestamp, setImageTimestamp] = useState(Date.now());
   const [isTyping, setIsTyping] = useState(false);
   const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
+  const [showMembersModal, setShowMembersModal] = useState(false);
   const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
   const socket = getSocket();
@@ -346,22 +347,35 @@ export const ChatWindow = () => {
             </>
           )}
         </div>
-        {isGroup ? (
-          <GroupHeaderMenu
-            groupId={conversationId}
-            onChatCleared={() => setMessages([])}
-            onUserLeft={() => {
-              // Handle user leaving group - navigate back or remove from list
-            }}
-          />
-        ) : otherUser ? (
-          <ChatHeaderMenu
-            conversationId={conversationId}
-            otherUserId={otherUser._id}
-            onChatCleared={() => setMessages([])}
-            onUserBlocked={() => setBlockStatus({ ...blockStatus, blocked: true })}
-          />
-        ) : null}
+        <div className="flex items-center gap-2">
+          {isGroup && (
+            <button
+              onClick={() => setShowMembersModal(true)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-700"
+              title="View members"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 12H9m4 8H5m14 0h-4m0-4H9m8 0h4" />
+              </svg>
+            </button>
+          )}
+          {isGroup ? (
+            <GroupHeaderMenu
+              groupId={conversationId}
+              onChatCleared={() => setMessages([])}
+              onUserLeft={() => {
+                // Handle user leaving group - navigate back or remove from list
+              }}
+            />
+          ) : otherUser ? (
+            <ChatHeaderMenu
+              conversationId={conversationId}
+              otherUserId={otherUser._id}
+              onChatCleared={() => setMessages([])}
+              onUserBlocked={() => setBlockStatus({ ...blockStatus, blocked: true })}
+            />
+          ) : null}
+        </div>
       </div>
 
       {/* Messages */}
@@ -441,12 +455,14 @@ export const ChatWindow = () => {
       )}
       </div>
 
-      {/* Members Panel for Groups */}
+      {/* Members Modal for Groups */}
       {isGroup && selectedGroup && (
-        <GroupMembersPanel
+        <GroupMembersModal
+          isOpen={showMembersModal}
           group={selectedGroup}
           currentUserId={user?._id}
           isAdmin={isGroupAdmin}
+          onClose={() => setShowMembersModal(false)}
           onMembersUpdate={(updatedGroup) => {
             // Update the selected group in store
             setSelectedGroup(updatedGroup);
