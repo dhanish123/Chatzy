@@ -311,9 +311,31 @@ export const ChatScreen = () => {
 
         <View style={styles.messageBubble}>
           <View style={[styles.bubbleContent, isOwn ? styles.ownBubble : styles.otherBubble]}>
-            <Text style={isOwn ? styles.ownText : styles.otherText}>
-              {item.isDeleted ? 'Message deleted' : item.content}
-            </Text>
+            {item.isDeleted ? (
+              <Text style={isOwn ? styles.ownText : styles.otherText}>Message deleted</Text>
+            ) : item.mediaType === 'audio' ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <MaterialIcons name="play-circle-filled" size={24} color={isOwn ? '#ffffff' : '#3b82f6'} />
+                <Text style={isOwn ? styles.ownText : styles.otherText}>Audio message</Text>
+              </View>
+            ) : item.mediaType === 'image' ? (
+              <View>
+                <Text style={{ width: 200, height: 150 }}>📷 Image</Text>
+                {item.content && <Text style={isOwn ? styles.ownText : styles.otherText}>{item.content}</Text>}
+              </View>
+            ) : item.mediaType === 'video' ? (
+              <View>
+                <Text style={isOwn ? styles.ownText : styles.otherText}>🎥 Video</Text>
+                {item.content && <Text style={isOwn ? styles.ownText : styles.otherText}>{item.content}</Text>}
+              </View>
+            ) : item.mediaType === 'file' ? (
+              <View>
+                <Text style={isOwn ? styles.ownText : styles.otherText}>📄 File</Text>
+                {item.content && <Text style={isOwn ? styles.ownText : styles.otherText}>{item.content}</Text>}
+              </View>
+            ) : (
+              <Text style={isOwn ? styles.ownText : styles.otherText}>{item.content}</Text>
+            )}
             {item.isEdited && <Text style={{ fontSize: 9, color: isOwn ? '#bfdbfe' : '#9ca3af', marginTop: 2 }}>(edited)</Text>}
           </View>
 
