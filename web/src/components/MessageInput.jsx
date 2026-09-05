@@ -93,8 +93,14 @@ export const MessageInput = ({
         response = await uploadAPI.file(file);
       }
       
-      const mediaType = file.type.split('/')[0];
-      onSend('', response.data.url, mediaType === 'application' ? 'file' : mediaType, replyingTo?._id);
+      // Determine media type based on file type
+      let mediaType = 'file';
+      if (file.type.startsWith('image/')) mediaType = 'image';
+      else if (file.type.startsWith('video/')) mediaType = 'video';
+      else if (file.type.startsWith('audio/')) mediaType = 'audio';
+      else if (file.type === 'application/pdf') mediaType = 'application/pdf';
+      
+      onSend('', response.data.url, mediaType, replyingTo?._id);
       onCancelReply?.();
     } catch (error) {
       console.error('Upload error:', error);
@@ -120,8 +126,14 @@ export const MessageInput = ({
         response = await uploadAPI.file(selectedFile);
       }
       
-      const mediaType = selectedFile.type.split('/')[0];
-      onSend('', response.data.url, mediaType === 'application' ? 'file' : mediaType, replyingTo?._id);
+      // Determine media type based on file type
+      let mediaType = 'file';
+      if (selectedFile.type.startsWith('image/')) mediaType = 'image';
+      else if (selectedFile.type.startsWith('video/')) mediaType = 'video';
+      else if (selectedFile.type.startsWith('audio/')) mediaType = 'audio';
+      else if (selectedFile.type === 'application/pdf') mediaType = 'application/pdf';
+      
+      onSend('', response.data.url, mediaType, replyingTo?._id);
       onCancelReply?.();
       setSelectedFile(null);
       setShowPreview(false);
