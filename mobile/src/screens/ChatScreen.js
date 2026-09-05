@@ -246,16 +246,29 @@ export const ChatScreen = () => {
           setIsOtherUserTyping(false);
         };
 
+        const handleGroupMemberAdded = async (data) => {
+          // Refresh group to get updated members list
+          try {
+            const response = await groupAPI.get(conversationId);
+            setSelectedGroup(response.data);
+          } catch (error) {
+            console.error('Error refreshing group members:', error);
+          }
+        };
+
         socket.on('groupNewMessage', handleGroupNewMessage);
         socket.on('messageStatusUpdated', handleMessageStatusUpdated);
         socket.on('userTypingGroup', handleGroupTyping);
         socket.on('userStoppedTypingGroup', handleGroupStopTyping);
+        socket.on('systemMessage', handleGroupNewMessage); // System messages use same handler
+        socket.on('groupMemberAdded', handleGroupMemberAdded);
         
         return () => {
           socket.off('groupNewMessage', handleGroupNewMessage);
           socket.off('messageStatusUpdated', handleMessageStatusUpdated);
           socket.off('userTypingGroup', handleGroupTyping);
           socket.off('userStoppedTypingGroup', handleGroupStopTyping);
+          socket.off('groupMemberAdded', handleGroupMemberAdded);
           socket.emit('leaveGroup', conversationId);
         };
       } else {
@@ -505,6 +518,19 @@ export const ChatScreen = () => {
   const renderMessage = ({ item }) => {
     if (item._id === 'typing-indicator') {
       return <TypingIndicator />;
+    }
+
+    // Render system messages
+    if (item.isSystemMessage) {
+      return (
+        <View style={{ flexDirection: 'row', justifyContent: 'center', paddingVertical: 8 }}>
+          <View style={{ backgroundColor: '#f3f4f6', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 }}>
+            <Text style={{ fontSize: 12, color: '#6b7280', textAlign: 'center', fontWeight: '500' }}>
+              {item.content}
+            </Text>
+          </View>
+        </View>
+      );
     }
 
     const isOwn = item.senderId._id === user?._id;

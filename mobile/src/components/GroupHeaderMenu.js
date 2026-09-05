@@ -175,7 +175,10 @@ export const GroupHeaderMenu = ({ groupId, group, currentUserId, onGroupLeft, on
   const handleAddMembers = async () => {
     try {
       const response = await friendAPI.getFriends();
-      setAvailableFriends(response.data);
+      // Filter out members already in group
+      const existingMemberIds = currentGroup.members.map(m => m.userId._id);
+      const filteredFriends = response.data.filter(f => !existingMemberIds.includes(f._id));
+      setAvailableFriends(filteredFriends);
       setSelectedMembers([]);
       setShowAddMembers(true);
       setIsOpen(false);

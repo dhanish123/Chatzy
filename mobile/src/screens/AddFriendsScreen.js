@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, Pressable, FlatList, SafeAreaView, Alert } from 'react-native';
 import { Button } from '../components/Button.js';
 import { useFriendStore } from '../stores/friendStore.js';
+import { useAuthStore } from '../stores/authStore.js';
 import { userAPI, friendAPI } from '../services/api.js';
 
 const styles = StyleSheet.create({
@@ -118,6 +119,7 @@ export const AddFriendsScreen = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [friends, setFriends] = useState([]);
   const { pendingRequests, sentRequests, setPendingRequests, setSentRequests } = useFriendStore();
+  const { user } = useAuthStore();
 
   useEffect(() => {
     const loadRequests = async () => {
@@ -166,7 +168,9 @@ export const AddFriendsScreen = () => {
     }
     try {
       const response = await userAPI.searchUsers(searchQuery);
-      setSearchResults(response.data);
+      // Filter out current user
+      const filtered = response.data.filter(u => u._id !== user?._id);
+      setSearchResults(filtered);
     } catch (error) {
       console.error('Error searching:', error);
     }
