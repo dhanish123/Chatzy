@@ -29,7 +29,13 @@ export const Sidebar = () => {
 
   const getProfileImageUrl = () => {
     if (!user?.profileImage) return '';
-    // Add cache-busting query parameter
+    
+    // Don't add query params to base64 data URLs - just return as-is
+    if (user.profileImage.startsWith('data:')) {
+      return user.profileImage;
+    }
+    
+    // Add cache-busting query parameter for regular URLs only
     return `${user.profileImage}?t=${imageTimestamp}`;
   };
 
