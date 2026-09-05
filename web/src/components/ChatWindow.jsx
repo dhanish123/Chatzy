@@ -63,7 +63,11 @@ export const ChatWindow = () => {
       try {
         setLoading(true);
         const response = await messageAPI.getMessages(conversationId);
-        setMessages(response.data);
+        // Sort messages by createdAt to ensure correct order (oldest first)
+        const sortedMessages = response.data.sort((a, b) => 
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        setMessages(sortedMessages);
         
         if (!isGroup && selectedConversation) {
           await conversationAPI.markAsRead(conversationId);

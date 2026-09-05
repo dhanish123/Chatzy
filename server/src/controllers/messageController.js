@@ -32,7 +32,7 @@ export const getMessages = async (req, res, next) => {
       const messages = await Message.find(query)
         .populate('senderId', '-password')
         .populate('replyTo')
-        .sort({ createdAt: -1 })
+        .sort({ createdAt: 1 })
         .skip(parseInt(skip))
         .limit(parseInt(limit));
 
@@ -59,7 +59,7 @@ export const getMessages = async (req, res, next) => {
       const messages = await Message.find(query)
         .populate('senderId', '-password')
         .populate('replyTo')
-        .sort({ createdAt: -1 })
+        .sort({ createdAt: 1 })
         .skip(parseInt(skip))
         .limit(parseInt(limit));
 
