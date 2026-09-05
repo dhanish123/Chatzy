@@ -24,6 +24,15 @@ export const Chat = () => {
           groupAPI.getAll()
         ]);
         setConversations(convRes.data);
+        
+        // If we have a selectedConversation from localStorage, update it with fresh data
+        const selectedConvId = selectedConversation?._id;
+        if (selectedConvId) {
+          const freshConv = convRes.data.find(c => c._id === selectedConvId);
+          if (freshConv) {
+            setSelectedConversation(freshConv);
+          }
+        }
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -32,7 +41,7 @@ export const Chat = () => {
     };
 
     loadData();
-  }, [setConversations]);
+  }, [setConversations, setSelectedConversation, selectedConversation]);
 
   // Initialize socket and listen for friend acceptance events
   useEffect(() => {
