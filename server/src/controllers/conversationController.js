@@ -132,17 +132,17 @@ export const clearConversation = async (req, res, next) => {
       return res.status(404).json({ message: 'Conversation not found' });
     }
 
-    const isParticipant = conversation.participants.some(
+    const participant = conversation.participants.find(
       p => p.userId.toString() === req.userId.toString()
     );
 
-    if (!isParticipant) {
+    if (!participant) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    await Message.deleteMany({ conversationId });
-    conversation.lastMessage = null;
-    conversation.clearedAt = { userId: req.userId, timestamp: new Date() };
+    // Only mark messages as hidden for the current user, don't delete them
+    // Update participant's clearedAt timestamp so they won't see messages before this time
+    participant.clearedAt = new Date();
     await conversation.save();
 
     res.json({ message: 'Conversation cleared' });

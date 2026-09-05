@@ -9,6 +9,10 @@ const conversationSchema = new mongoose.Schema({
     unreadCount: {
       type: Number,
       default: 0
+    },
+    clearedAt: {
+      type: Date,
+      default: null
     }
   }],
   lastMessage: {
@@ -19,10 +23,6 @@ const conversationSchema = new mongoose.Schema({
   lastMessageAt: {
     type: Date,
     default: new Date()
-  },
-  clearedAt: {
-    userId: mongoose.Schema.Types.ObjectId,
-    timestamp: Date
   },
   createdAt: {
     type: Date,

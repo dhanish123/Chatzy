@@ -11,15 +11,21 @@ export const getMessages = async (req, res, next) => {
       return res.status(404).json({ message: 'Conversation not found' });
     }
 
-    const isParticipant = conversation.participants.some(
+    const participant = conversation.participants.find(
       p => p.userId.toString() === req.userId.toString()
     );
 
-    if (!isParticipant) {
+    if (!participant) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
 
-    const messages = await Message.find({ conversationId })
+    // Build query - exclude messages created before clearedAt
+    const query = { conversationId };
+    if (participant.clearedAt) {
+      query.createdAt = { $gte: participant.clearedAt };
+    }
+
+    const messages = await Message.find(query)
       .populate('senderId', '-password')
       .populate('replyTo')
       .sort({ createdAt: -1 })
