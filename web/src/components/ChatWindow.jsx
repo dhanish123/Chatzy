@@ -126,12 +126,19 @@ export const ChatWindow = () => {
           }
         };
 
+        const handleSystemMessage = (message) => {
+          // Add system message to chat
+          addMessage(message);
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        };
+
         socket.on('groupNewMessage', handleGroupNewMessage);
         socket.on('groupMessageRead', handleMessageStatusUpdated);
         socket.on('messageStatusUpdated', handleMessageStatusUpdated);
         socket.on('userTypingGroup', handleGroupTyping);
         socket.on('userStoppedTypingGroup', handleGroupStopTyping);
         socket.on('groupMemberAdded', handleGroupMemberAdded);
+        socket.on('systemMessage', handleSystemMessage);
         
         return () => {
           socket.off('groupNewMessage', handleGroupNewMessage);
@@ -140,6 +147,7 @@ export const ChatWindow = () => {
           socket.off('userTypingGroup', handleGroupTyping);
           socket.off('userStoppedTypingGroup', handleGroupStopTyping);
           socket.off('groupMemberAdded', handleGroupMemberAdded);
+          socket.off('systemMessage', handleSystemMessage);
           socket.emit('leaveGroup', conversationId);
         };
       } else {

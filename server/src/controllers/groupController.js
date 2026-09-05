@@ -132,6 +132,8 @@ export const addGroupMembers = async (req, res, next) => {
     // Create system messages for added members
     if (addedMembers.length > 0) {
       const currentUser = await User.findById(req.userId);
+      const io = req.app.get('io');
+      
       for (const memberId of addedMembers) {
         const addedUser = await User.findById(memberId);
         const systemMessage = new Message({
@@ -143,6 +145,20 @@ export const addGroupMembers = async (req, res, next) => {
           status: 'sent'
         });
         await systemMessage.save();
+        
+        // Emit to group socket
+        if (io) {
+          io.to(`group:${groupId}`).emit('systemMessage', {
+            _id: systemMessage._id,
+            groupId: group._id,
+            senderId: req.userId,
+            content: systemMessage.content,
+            isSystemMessage: true,
+            systemMessageType: 'memberAdded',
+            createdAt: systemMessage.createdAt,
+            status: 'sent'
+          });
+        }
       }
       
       // Update last message
@@ -183,6 +199,21 @@ export const leaveGroup = async (req, res, next) => {
     group.lastMessage = systemMessage._id;
     group.lastMessageAt = new Date();
     await group.save();
+
+    // Emit to group socket
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`group:${groupId}`).emit('systemMessage', {
+        _id: systemMessage._id,
+        groupId: group._id,
+        senderId: req.userId,
+        content: systemMessage.content,
+        isSystemMessage: true,
+        systemMessageType: 'memberRemoved',
+        createdAt: systemMessage.createdAt,
+        status: 'sent'
+      });
+    }
 
     res.json({ message: 'Left group', group });
   } catch (error) {
@@ -306,6 +337,11 @@ export const removeMember = async (req, res, next) => {
       return res.status(422).json({ message: 'Cannot remove group creator' });
     }
 
+    // Get the member being removed for system message
+    const removedMember = group.members.find(m => m.userId.toString() === memberId);
+    const removedUser = await User.findById(memberId);
+    const currentUser = await User.findById(req.userId);
+
     group.members = group.members.filter(m => m.userId.toString() !== memberId);
     await group.save();
     await group.populate([
@@ -313,8 +349,35 @@ export const removeMember = async (req, res, next) => {
       { path: 'members.userId', select: '-password' }
     ]);
 
+    // Create system message for member removal
+    const systemMessage = new Message({
+      groupId: group._id,
+      senderId: req.userId,
+      content: `${currentUser.username} removed ${removedUser.username}`,
+      isSystemMessage: true,
+      systemMessageType: 'memberRemoved',
+      status: 'sent'
+    });
+    await systemMessage.save();
+
+    // Emit to group socket
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`group:${groupId}`).emit('systemMessage', {
+        _id: systemMessage._id,
+        groupId: group._id,
+        senderId: req.userId,
+        content: systemMessage.content,
+        isSystemMessage: true,
+        systemMessageType: 'memberRemoved',
+        createdAt: systemMessage.createdAt,
+        status: 'sent'
+      });
+    }
+
     res.json(group);
   } catch (error) {
     next(error);
   }
+};
 };

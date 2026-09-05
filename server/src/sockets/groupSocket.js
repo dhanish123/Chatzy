@@ -1,5 +1,3 @@
-import { Message } from '../models/Message.js';
-
 export const handleGroupEvents = (io, socket) => {
   socket.on('joinGroup', (groupId) => {
     socket.join(`group:${groupId}`);
