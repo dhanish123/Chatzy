@@ -44,10 +44,17 @@ export const VoiceRecorder = ({ onSend, onCancel }) => {
       source.connect(analyserRef.current);
       analyserRef.current.fftSize = 2048;
 
-      mediaRecorderRef.current = new MediaRecorder(stream);
+      // Use the best supported audio MIME type
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+        ? 'audio/webm;codecs=opus' 
+        : MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : 'audio/wav';
+      
+      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current.ondataavailable = (e) => chunksRef.current.push(e.data);
       mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/wav' });
+        const blob = new Blob(chunksRef.current, { type: mimeType });
         onSend(blob);
         handleCancel();
       };
