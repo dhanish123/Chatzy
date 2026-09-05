@@ -1,10 +1,11 @@
 import { useState, useRef } from 'react';
-import { RiSendPlaneFill, RiAttachmentLine, RiEmojiStickerLine } from 'react-icons/ri';
-import { BsMic } from 'react-icons/bs';
-import { RiCloseLine } from 'react-icons/ri';
+import { RiSendPlaneFill, RiCloseLine } from 'react-icons/ri';
 import { Input } from './Input.jsx';
 import { Button } from './Button.jsx';
 import { uploadAPI } from '../services/api.js';
+import { VoiceRecorder } from './VoiceRecorder.jsx';
+import { EmojiPickerPopup } from './EmojiPickerPopup.jsx';
+import { MediaDropdown } from './MediaDropdown.jsx';
 
 export const MessageInput = ({ 
   onSend, 
@@ -17,6 +18,7 @@ export const MessageInput = ({
 }) => {
   const [message, setMessage] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleSend = async () => {
@@ -28,6 +30,10 @@ export const MessageInput = ({
       setMessage('');
       onCancelReply?.();
     }
+  };
+
+  const handleEmojiSelect = (emoji) => {
+    setMessage(prev => prev + emoji);
   };
 
   const handleFileUpload = async (e) => {
@@ -52,6 +58,20 @@ export const MessageInput = ({
       onCancelReply?.();
     } catch (error) {
       console.error('Upload error:', error);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleVoiceRecordSend = async (audioBlob) => {
+    setUploading(true);
+    try {
+      const response = await uploadAPI.audio(audioBlob);
+      onSend('', response.data.url, 'audio', replyingTo?._id);
+      onCancelReply?.();
+      setIsRecording(false);
+    } catch (error) {
+      console.error('Voice upload error:', error);
     } finally {
       setUploading(false);
     }
@@ -83,47 +103,53 @@ export const MessageInput = ({
         </div>
       )}
 
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="text-gray-600 hover:text-blue-600"
-          disabled={uploading}
-        >
-          <RiAttachmentLine size={20} />
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          onChange={handleFileUpload}
-          className="hidden"
-          accept="image/*,video/*,audio/*,.pdf"
+      {isRecording ? (
+        <VoiceRecorder
+          onSend={handleVoiceRecordSend}
+          onCancel={() => setIsRecording(false)}
         />
+      ) : (
+        <div className="flex items-center gap-3">
+          <MediaDropdown
+            onFileSelect={handleFileUpload}
+            isUploading={uploading}
+          />
 
-        <button className="text-gray-600 hover:text-blue-600">
-          <RiEmojiStickerLine size={20} />
-        </button>
+          <EmojiPickerPopup onEmojiClick={handleEmojiSelect} />
 
-        <button className="text-gray-600 hover:text-blue-600">
-          <BsMic size={20} />
-        </button>
+          <button
+            onClick={() => setIsRecording(true)}
+            className="text-gray-600 hover:text-blue-600 flex-shrink-0"
+            title="Record voice message"
+            disabled={uploading}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 1a3 3 0 0 0-3 3v12a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="23" />
+              <line x1="8" y1="23" x2="16" y2="23" />
+            </svg>
+          </button>
 
-        <input
-          type="text"
-          placeholder={editingMessage ? "Edit message..." : "Type a message..."}
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+          <input
+            type="text"
+            placeholder={editingMessage ? "Edit message..." : "Type a message..."}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={uploading}
+          />
 
-        <button
-          onClick={handleSend}
-          disabled={(!message.trim() && !uploading) || uploading}
-          className="text-blue-600 hover:text-blue-700 disabled:text-gray-400"
-        >
-          <RiSendPlaneFill size={20} />
-        </button>
-      </div>
+          <button
+            onClick={handleSend}
+            disabled={(!message.trim() && !uploading) || uploading}
+            className="text-blue-600 hover:text-blue-700 disabled:text-gray-400"
+          >
+            <RiSendPlaneFill size={20} />
+          </button>
+        </div>
+      )}
     </div>
   );
 };
