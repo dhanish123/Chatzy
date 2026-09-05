@@ -19,10 +19,8 @@ export const ConversationList = ({ searchQuery = '' }) => {
       const validConv = conversations.find(c => c?.participants && c.participants.length > 0);
       if (validConv) {
         setSelectedConversation(validConv);
-        // Save auto-selected conversation to MongoDB
-        userStateAPI.setSelectedConversation(validConv._id).catch(err => 
-          console.error('Error saving auto-selected conversation:', err)
-        );
+        // Save auto-selected conversation to MongoDB (fire and forget)
+        userStateAPI.setSelectedConversation(validConv._id);
       }
     }
   }, [conversations.length, selectedConversation]);
@@ -50,10 +48,8 @@ export const ConversationList = ({ searchQuery = '' }) => {
             onClick={() => {
               setSelectedConversation(conv);
               setSelectedGroup(null); // Clear group when selecting private chat
-              // Save selected conversation to MongoDB
-              userStateAPI.setSelectedConversation(conv._id).catch(err => 
-                console.error('Error saving selected conversation:', err)
-              );
+              // Save selected conversation to MongoDB (fire and forget)
+              userStateAPI.setSelectedConversation(conv._id);
             }}
             className="px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 flex items-center justify-between"
           >

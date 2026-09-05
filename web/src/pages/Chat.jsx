@@ -20,29 +20,35 @@ export const Chat = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [convRes, groupRes, stateRes] = await Promise.all([
+        const [convRes, groupRes] = await Promise.all([
           conversationAPI.getAll(),
-          groupAPI.getAll(),
-          userStateAPI.getState().catch(() => ({ data: {} })) // Fallback if userState fetch fails
+          groupAPI.getAll()
         ]);
         
         setConversations(convRes.data);
         setGroups(groupRes.data);
 
-        // Restore selected conversation from MongoDB
-        if (stateRes?.data?.selectedConversationId) {
-          const savedConv = convRes.data.find(c => c._id === stateRes.data.selectedConversationId);
-          if (savedConv) {
-            setSelectedConversation(savedConv);
+        // Try to restore state from MongoDB, but don't fail if it doesn't work
+        try {
+          const stateRes = await userStateAPI.getState();
+          // Restore selected conversation from MongoDB
+          if (stateRes?.data?.selectedConversationId) {
+            const savedConv = convRes.data.find(c => c._id === stateRes.data.selectedConversationId);
+            if (savedConv) {
+              setSelectedConversation(savedConv);
+            }
           }
-        }
 
-        // Restore selected group from MongoDB
-        if (stateRes?.data?.selectedGroupId) {
-          const savedGroup = groupRes.data.find(g => g._id === stateRes.data.selectedGroupId);
-          if (savedGroup) {
-            setSelectedGroup(savedGroup);
+          // Restore selected group from MongoDB
+          if (stateRes?.data?.selectedGroupId) {
+            const savedGroup = groupRes.data.find(g => g._id === stateRes.data.selectedGroupId);
+            if (savedGroup) {
+              setSelectedGroup(savedGroup);
+            }
           }
+        } catch (stateError) {
+          console.warn('Could not restore user state from MongoDB:', stateError.message);
+          // Continue without user state restoration
         }
       } catch (error) {
         console.error('Error loading data:', error);
@@ -52,7 +58,7 @@ export const Chat = () => {
     };
 
     loadData();
-  }, []); // Only run on mount
+  }, []);
 
   // Initialize socket and listen for friend acceptance events
   useEffect(() => {

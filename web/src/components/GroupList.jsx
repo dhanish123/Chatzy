@@ -27,10 +27,8 @@ export const GroupList = () => {
             onClick={() => {
               setSelectedGroup(group);
               setSelectedConversation(null); // Clear private chat when selecting group
-              // Save selected group to MongoDB
-              userStateAPI.setSelectedGroup(group._id).catch(err => 
-                console.error('Error saving selected group:', err)
-              );
+              // Save selected group to MongoDB (fire and forget)
+              userStateAPI.setSelectedGroup(group._id);
             }}
             className="px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 flex items-center justify-between"
           >

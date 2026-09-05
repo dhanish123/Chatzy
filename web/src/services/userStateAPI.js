@@ -26,7 +26,11 @@ axiosInstance.interceptors.response.use(
       // If user state not found, return empty object
       return { data: {} };
     }
-    console.error('User state API error:', error.message);
+    if (error.response?.status === 401) {
+      // If unauthorized, just return empty
+      return { data: {} };
+    }
+    // For other errors, re-throw
     return Promise.reject(error);
   }
 );
@@ -38,8 +42,7 @@ export const userStateAPI = {
       const response = await axiosInstance.get('/');
       return response;
     } catch (error) {
-      console.error('Error fetching user state:', error);
-      // Return empty state on error
+      // Return empty state if any error occurs
       return { data: {} };
     }
   },
@@ -50,8 +53,8 @@ export const userStateAPI = {
       const response = await axiosInstance.post('/conversation', { conversationId });
       return response;
     } catch (error) {
-      console.error('Error setting selected conversation:', error);
-      throw error;
+      // Silently fail for set operations
+      return null;
     }
   },
 
@@ -61,8 +64,8 @@ export const userStateAPI = {
       const response = await axiosInstance.post('/group', { groupId });
       return response;
     } catch (error) {
-      console.error('Error setting selected group:', error);
-      throw error;
+      // Silently fail for set operations
+      return null;
     }
   },
 
@@ -72,8 +75,8 @@ export const userStateAPI = {
       const response = await axiosInstance.post('/clear');
       return response;
     } catch (error) {
-      console.error('Error clearing user state:', error);
-      throw error;
+      // Silently fail for clear operations
+      return null;
     }
   }
 };
