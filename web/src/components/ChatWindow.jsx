@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../stores/authStore.js';
 import { useChatStore } from '../stores/chatStore.js';
 import { useGroupStore } from '../stores/groupStore.js';
-import { conversationAPI, messageAPI } from '../services/api.js';
+import { conversationAPI, messageAPI, blockAPI } from '../services/api.js';
 import { getSocket } from '../services/socket.js';
 import { MessageBubble } from './MessageBubble.jsx';
 import { MessageInput } from './MessageInput.jsx';
+import { ChatHeaderMenu } from './ChatHeaderMenu.jsx';
 import { Loader } from './Loader.jsx';
 
 export const ChatWindow = () => {
@@ -16,6 +17,8 @@ export const ChatWindow = () => {
   const [hoveredMessage, setHoveredMessage] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
+  const [isUserBlocked, setIsUserBlocked] = useState(false);
+  const [blockStatus, setBlockStatus] = useState({ blocked: false, blockedBy: false });
   const messagesEndRef = useRef(null);
   const socket = getSocket();
 
@@ -33,8 +36,7 @@ export const ChatWindow = () => {
 
   const otherUser = !isGroup ? selectedConversation?.participants?.find(p => p.userId._id !== user?._id)?.userId : null;
 
-  useEffect(() => {
-    if (!conversationId) return;
+
 
     const loadMessages = async () => {
       try {
@@ -78,6 +80,44 @@ export const ChatWindow = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    if (!conversationId || isGroup || !otherUser) return;
+
+    const checkBlockStatus = async () => {
+      try {
+        const response = await blockAPI.isUserBlocked(otherUser._id);
+        setBlockStatus(response.data);
+      } catch (error) {
+        console.error('Error checking block status:', error);
+      }
+    };
+
+    checkBlockStatus();
+
+    // Listen for block/unblock events from socket
+    if (socket) {
+      const handleUserBlocked = (data) => {
+        if (data.blockedUserId === otherUser._id) {
+          setBlockStatus({ blocked: true, blockedBy: false });
+        }
+      };
+
+      const handleUserUnblocked = (data) => {
+        if (data.unblockedUserId === otherUser._id) {
+          setBlockStatus({ blocked: false, blockedBy: false });
+        }
+      };
+
+      socket.on('userBlocked', handleUserBlocked);
+      socket.on('userUnblocked', handleUserUnblocked);
+
+      return () => {
+        socket.off('userBlocked', handleUserBlocked);
+        socket.off('userUnblocked', handleUserUnblocked);
+      };
+    }
+  }, [otherUser?._id, conversationId, isGroup, socket]);
 
   const handleSendMessage = async (content, mediaUrl, mediaType, replyTo) => {
     if (!content && !mediaUrl) return;
@@ -139,7 +179,7 @@ export const ChatWindow = () => {
     <div className="flex-1 flex flex-col h-screen bg-white">
       {/* Chat Header */}
       <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-        <div>
+        <div className="flex-1">
           <h2 className="text-lg font-semibold">
             {isGroup ? selectedGroup?.name : otherUser?.username}
           </h2>
@@ -149,6 +189,14 @@ export const ChatWindow = () => {
             </p>
           )}
         </div>
+        {!isGroup && otherUser && (
+          <ChatHeaderMenu
+            conversationId={conversationId}
+            otherUserId={otherUser._id}
+            onChatCleared={() => setMessages([])}
+            onUserBlocked={() => setBlockStatus({ ...blockStatus, blocked: true })}
+          />
+        )}
       </div>
 
       {/* Messages */}
@@ -178,17 +226,42 @@ export const ChatWindow = () => {
       </div>
 
       {/* Message Input */}
-      <MessageInput 
-        onSend={handleSendMessage}
-        editingMessage={editingMessage}
-        onCancelEdit={() => setEditingMessage(null)}
-        onEditSave={(content) => {
-          handleEditMessage(editingMessage._id, content);
-        }}
-        replyingTo={replyingTo}
-        onCancelReply={() => setReplyingTo(null)}
-        onSetReply={setReplyingTo}
-      />
+      {blockStatus.blocked ? (
+        <div className="bg-red-50 border-t border-red-200 p-4 flex items-center justify-between">
+          <p className="text-red-700">You blocked {otherUser?.username}</p>
+          <button
+            onClick={async () => {
+              try {
+                await blockAPI.unblockUser(otherUser._id);
+                setBlockStatus({ ...blockStatus, blocked: false });
+                
+                // Emit unblock event to socket
+                if (socket) {
+                  socket.emit('unblockUser', { unblockedUserId: otherUser._id });
+                }
+              } catch (error) {
+                console.error('Error unblocking user:', error);
+              }
+            }}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-medium"
+          >
+            Unblock
+          </button>
+        </div>
+      ) : (
+        <MessageInput 
+          onSend={handleSendMessage}
+          editingMessage={editingMessage}
+          onCancelEdit={() => setEditingMessage(null)}
+          onEditSave={(content) => {
+            handleEditMessage(editingMessage._id, content);
+          }}
+          replyingTo={replyingTo}
+          onCancelReply={() => setReplyingTo(null)}
+          onSetReply={setReplyingTo}
+          isBlocked={blockStatus.blockedBy}
+        />
+      )}
     </div>
   );
 };

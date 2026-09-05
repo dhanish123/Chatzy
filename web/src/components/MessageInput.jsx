@@ -14,7 +14,8 @@ export const MessageInput = ({
   onEditSave,
   replyingTo,
   onCancelReply,
-  onSetReply
+  onSetReply,
+  isBlocked
 }) => {
   const [message, setMessage] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -119,9 +120,9 @@ export const MessageInput = ({
 
           <button
             onClick={() => setIsRecording(true)}
-            className="text-gray-600 hover:text-blue-600 flex-shrink-0"
-            title="Record voice message"
-            disabled={uploading}
+            className="text-gray-600 hover:text-blue-600 flex-shrink-0 disabled:text-gray-400 disabled:cursor-not-allowed"
+            title={isBlocked ? "This user has blocked you" : "Record voice message"}
+            disabled={uploading || isBlocked}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 1a3 3 0 0 0-3 3v12a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
@@ -133,12 +134,12 @@ export const MessageInput = ({
 
           <input
             type="text"
-            placeholder={editingMessage ? "Edit message..." : "Type a message..."}
+            placeholder={isBlocked ? "This user has blocked you" : (editingMessage ? "Edit message..." : "Type a message...")}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={uploading}
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            disabled={uploading || isBlocked}
           />
 
           <button
