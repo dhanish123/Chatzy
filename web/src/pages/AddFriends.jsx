@@ -4,6 +4,7 @@ import { Tab } from '../components/Tab.jsx';
 import { userAPI, friendAPI, conversationAPI } from '../services/api.js';
 import { useFriendStore } from '../stores/friendStore.js';
 import { useChatStore } from '../stores/chatStore.js';
+import { useAuthStore } from '../stores/authStore.js';
 import { Avatar } from '../components/Avatar.jsx';
 import { Button } from '../components/Button.jsx';
 import { Input } from '../components/Input.jsx';
@@ -15,6 +16,7 @@ export const AddFriends = () => {
   const [friendsList, setFriendsList] = useState([]);
   const { pendingRequests, sentRequests, setPendingRequests, setSentRequests } = useFriendStore();
   const { conversations, setConversations } = useChatStore();
+  const { user } = useAuthStore();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -44,7 +46,9 @@ export const AddFriends = () => {
       }
       try {
         const response = await userAPI.searchUsers(searchQuery);
-        setSearchResults(response.data);
+        // Filter out current user from search results
+        const filtered = response.data.filter(u => u._id !== user?._id);
+        setSearchResults(filtered);
       } catch (error) {
         console.error('Error searching:', error);
       }
@@ -53,7 +57,7 @@ export const AddFriends = () => {
     // Debounce search to avoid too many API calls
     const timer = setTimeout(handleSearch, 300);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, user?._id]);
 
   const handleSendRequest = async (userId) => {
     try {
