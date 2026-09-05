@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { BsStop, BsMicFill } from 'react-icons/bs';
+import { BsMicFill } from 'react-icons/bs';
 import { RiCloseLine } from 'react-icons/ri';
 
 export const VoiceRecorder = ({ onSend, onCancel }) => {
@@ -113,6 +113,7 @@ export const VoiceRecorder = ({ onSend, onCancel }) => {
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
+      setIsRecording(false);
     }
   };
 
@@ -167,10 +168,13 @@ export const VoiceRecorder = ({ onSend, onCancel }) => {
 
         <button
           onClick={stopRecording}
-          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded flex items-center gap-2 whitespace-nowrap"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2 whitespace-nowrap"
         >
-          <BsStop size={14} />
-          Stop
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M16.91 13.37A8 8 0 1 0 12 20.55" />
+            <polyline points="12 5 12 12 16 16" />
+          </svg>
+          Send
         </button>
 
         <button
