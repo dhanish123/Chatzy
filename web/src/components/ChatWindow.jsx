@@ -55,6 +55,9 @@ export const ChatWindow = () => {
   useEffect(() => {
     if (!conversationId) return;
 
+    // Clear messages when switching conversations
+    setMessages([]);
+
     const loadMessages = async () => {
       try {
         setLoading(true);
