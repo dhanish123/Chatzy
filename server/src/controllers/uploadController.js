@@ -4,7 +4,8 @@ export const uploadFile = async (req, res, next) => {
       return res.status(422).json({ message: 'No file uploaded' });
     }
 
-    const fileUrl = `${process.env.API_URL}/uploads/${req.file.filename}`;
+    // Use relative URL path (will work in all environments)
+    const fileUrl = `/uploads/${req.file.filename}`;
 
     res.json({
       url: fileUrl,

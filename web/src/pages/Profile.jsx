@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore.js';
-import { userAPI } from '../services/api.js';
+import { userAPI, getImageUrl } from '../services/api.js';
 import { Button } from '../components/Button.jsx';
 import { Input } from '../components/Input.jsx';
 import { Avatar } from '../components/Avatar.jsx';

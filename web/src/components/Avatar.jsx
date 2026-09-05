@@ -1,3 +1,5 @@
+import { getImageUrl } from '../services/api.js';
+
 export const Avatar = ({
   src = '',
   alt = '',
@@ -12,10 +14,12 @@ export const Avatar = ({
     xl: 'w-16 h-16 text-lg'
   };
 
+  const imageUrl = getImageUrl(src);
+
   return (
     <div className={`${sizes[size]} rounded-full bg-blue-500 text-white flex items-center justify-center overflow-hidden flex-shrink-0 ${className}`}>
       {src ? (
-        <img src={src} alt={alt} className="w-full h-full object-cover" />
+        <img src={imageUrl} alt={alt} className="w-full h-full object-cover" />
       ) : (
         <span className="font-semibold">{initials}</span>
       )}

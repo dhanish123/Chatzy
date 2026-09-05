@@ -3,6 +3,14 @@ import { useAuthStore } from '../stores/authStore.js';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+// Helper to convert relative URLs to absolute
+export const getImageUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('/')) return `${API_URL}${url}`;
+  return `${API_URL}/${url}`;
+};
+
 const api = axios.create({
   baseURL: API_URL,
   headers: {
