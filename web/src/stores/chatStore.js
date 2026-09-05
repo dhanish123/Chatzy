@@ -10,15 +10,16 @@ export const useChatStore = create((set) => ({
   setSelectedConversation: (conversation) => set({ selectedConversation: conversation }),
   setMessages: (messages) => set({ messages }),
   addMessage: (message) => set((state) => {
-    // Insert message in correct chronological order (by createdAt)
+    // Insert message maintaining OLDEST FIRST order
+    // So when rendered: oldest at top, newest at bottom
     const newMessages = [...state.messages];
     const messageTime = new Date(message.createdAt).getTime();
     
-    // Find the correct position to insert the message
+    // Find position: insert before first message that's newer
     let insertIndex = newMessages.length;
     for (let i = 0; i < newMessages.length; i++) {
       const existingTime = new Date(newMessages[i].createdAt).getTime();
-      if (messageTime < existingTime) {
+      if (messageTime < existingTime) {  // If new message is OLDER, insert before
         insertIndex = i;
         break;
       }

@@ -63,7 +63,8 @@ export const ChatWindow = () => {
       try {
         setLoading(true);
         const response = await messageAPI.getMessages(conversationId);
-        // Sort messages by createdAt to ensure correct order (oldest first)
+        // Sort messages by createdAt - OLDEST FIRST
+        // This way when rendered with .map(), oldest appears at top, newest at bottom
         const sortedMessages = response.data.sort((a, b) => 
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
