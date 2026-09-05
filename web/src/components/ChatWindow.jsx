@@ -86,6 +86,10 @@ export const ChatWindow = () => {
         console.error('Error loading messages:', error);
       } finally {
         setLoading(false);
+        // Scroll to bottom after loading
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+        }, 100);
       }
     };
 
@@ -201,9 +205,9 @@ export const ChatWindow = () => {
     if (messages.length > 0) {
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
-      }, 100);
+      }, 150);
     }
-  }, [messages, loading]);
+  }, [messages]);
 
   useEffect(() => {
     if (!conversationId || isGroup || !otherUser) return;
