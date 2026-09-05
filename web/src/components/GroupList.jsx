@@ -1,6 +1,7 @@
 import { useGroupStore } from '../stores/groupStore.js';
 import { useChatStore } from '../stores/chatStore.js';
 import { useAuthStore } from '../stores/authStore.js';
+import { userStateAPI } from '../services/userStateAPI.js';
 import { Avatar } from './Avatar.jsx';
 import { EmptyState } from './EmptyState.jsx';
 import { LuUsers } from 'react-icons/lu';
@@ -26,6 +27,10 @@ export const GroupList = () => {
             onClick={() => {
               setSelectedGroup(group);
               setSelectedConversation(null); // Clear private chat when selecting group
+              // Save selected group to MongoDB
+              userStateAPI.setSelectedGroup(group._id).catch(err => 
+                console.error('Error saving selected group:', err)
+              );
             }}
             className="px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 flex items-center justify-between"
           >

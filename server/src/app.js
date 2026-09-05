@@ -10,6 +10,7 @@ import messageRoutes from './routes/messageRoutes.js';
 import groupRoutes from './routes/groupRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import userStateRoutes from './routes/userStateRoutes.js';
 import { User } from './models/User.js';
 import { Message } from './models/Message.js';
 
@@ -77,6 +78,7 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/user-state', userStateRoutes);
 
 app.use(errorHandler);
 

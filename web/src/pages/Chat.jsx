@@ -4,6 +4,7 @@ import { useChatStore } from '../stores/chatStore.js';
 import { useGroupStore } from '../stores/groupStore.js';
 import { useFriendStore } from '../stores/friendStore.js';
 import { conversationAPI, messageAPI, groupAPI } from '../services/api.js';
+import { userStateAPI } from '../services/userStateAPI.js';
 import { getSocket, joinConversation, leaveConversation, initializeSocket, joinUserRoom } from '../services/socket.js';
 import { Sidebar } from '../components/Sidebar.jsx';
 import { ChatWindow } from '../components/ChatWindow.jsx';
@@ -19,18 +20,28 @@ export const Chat = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [convRes, groupRes] = await Promise.all([
+        const [convRes, groupRes, stateRes] = await Promise.all([
           conversationAPI.getAll(),
-          groupAPI.getAll()
+          groupAPI.getAll(),
+          userStateAPI.getState()
         ]);
+        
         setConversations(convRes.data);
         setGroups(groupRes.data);
 
-        // Re-sync selectedConversation with fresh data from server
-        if (selectedConversation && convRes.data.length > 0) {
-          const updatedConv = convRes.data.find(c => c._id === selectedConversation._id);
-          if (updatedConv) {
-            setSelectedConversation(updatedConv);
+        // Restore selected conversation from MongoDB
+        if (stateRes.data?.selectedConversationId) {
+          const savedConv = convRes.data.find(c => c._id === stateRes.data.selectedConversationId);
+          if (savedConv) {
+            setSelectedConversation(savedConv);
+          }
+        }
+
+        // Restore selected group from MongoDB
+        if (stateRes.data?.selectedGroupId) {
+          const savedGroup = groupRes.data.find(g => g._id === stateRes.data.selectedGroupId);
+          if (savedGroup) {
+            setSelectedGroup(savedGroup);
           }
         }
       } catch (error) {
@@ -41,7 +52,7 @@ export const Chat = () => {
     };
 
     loadData();
-  }, [setConversations, setGroups, setSelectedConversation]);
+  }, [setConversations, setGroups, setSelectedConversation, setSelectedGroup]);
 
   // Initialize socket and listen for friend acceptance events
   useEffect(() => {
