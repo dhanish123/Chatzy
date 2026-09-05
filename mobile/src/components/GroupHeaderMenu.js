@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, FlatList, Alert, Modal as RNModal } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { groupAPI, friendAPI } from '../services/api.js';
 import { getSocket } from '../services/socket.js';
 import { Modal } from './Modal.js';
+import { GroupMembersModal } from './GroupMembersModal.js';
 
 const styles = StyleSheet.create({
   container: {
@@ -145,9 +146,14 @@ const styles = StyleSheet.create({
   }
 });
 
-export const GroupHeaderMenu = ({ groupId, onGroupLeft }) => {
+export const GroupHeaderMenu = ({ groupId, group, currentUserId, onGroupLeft, onGroupUpdated }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showMembers, setShowMembers] = useState(false);
+  const [showAddMembers, setShowAddMembers] = useState(false);
+  const [currentGroup, setCurrentGroup] = useState(group);
+  const [availableFriends, setAvailableFriends] = useState([]);
+  const [selectedMembers, setSelectedMembers] = useState([]);
   const [modalState, setModalState] = useState({
     isOpen: false,
     title: '',
@@ -155,24 +161,27 @@ export const GroupHeaderMenu = ({ groupId, onGroupLeft }) => {
     action: null,
     isDangerous: false
   });
-  const [showAddMembers, setShowAddMembers] = useState(false);
-  const [availableFriends, setAvailableFriends] = useState([]);
-  const [selectedMembers, setSelectedMembers] = useState([]);
-  const [fetchingFriends, setFetchingFriends] = useState(false);
   const socket = getSocket();
+
+  // Determine if current user is admin
+  const isAdmin = currentGroup?.creatorId?._id === currentUserId ||
+    currentGroup?.members?.some(m => m.userId._id === currentUserId && m.isAdmin);
+
+  const handleViewMembers = () => {
+    setShowMembers(true);
+    setIsOpen(false);
+  };
 
   const handleAddMembers = async () => {
     try {
-      setFetchingFriends(true);
       const response = await friendAPI.getFriends();
       setAvailableFriends(response.data);
       setSelectedMembers([]);
       setShowAddMembers(true);
+      setIsOpen(false);
     } catch (error) {
       console.error('Error loading friends:', error);
       Alert.alert('Error', 'Failed to load friends');
-    } finally {
-      setFetchingFriends(false);
     }
   };
 
@@ -192,7 +201,10 @@ export const GroupHeaderMenu = ({ groupId, onGroupLeft }) => {
 
     try {
       setLoading(true);
-      await groupAPI.addMembers(groupId, selectedMembers);
+      const response = await groupAPI.addMembers(groupId, selectedMembers);
+      
+      setCurrentGroup(response.data);
+      onGroupUpdated?.(response.data);
       
       if (socket) {
         socket.emit('groupMembersAdded', { groupId, memberIds: selectedMembers });
@@ -200,7 +212,6 @@ export const GroupHeaderMenu = ({ groupId, onGroupLeft }) => {
       
       Alert.alert('Success', 'Members added successfully');
       setShowAddMembers(false);
-      setIsOpen(false);
     } catch (error) {
       console.error('Error adding members:', error);
       Alert.alert('Error', error.response?.data?.message || 'Failed to add members');
@@ -213,7 +224,7 @@ export const GroupHeaderMenu = ({ groupId, onGroupLeft }) => {
     setModalState({
       isOpen: true,
       title: 'Leave Group',
-      message: 'Are you sure you want to leave this group? You will no longer receive messages.',
+      message: 'Are you sure you want to leave this group?',
       action: 'leave',
       isDangerous: true
     });
@@ -230,7 +241,6 @@ export const GroupHeaderMenu = ({ groupId, onGroupLeft }) => {
         }
         
         onGroupLeft?.();
-        setIsOpen(false);
       }
       setModalState({ ...modalState, isOpen: false });
     } catch (error) {
@@ -280,14 +290,20 @@ export const GroupHeaderMenu = ({ groupId, onGroupLeft }) => {
           <View style={styles.menuOverlay}>
             <Pressable
               style={[styles.menuItem]}
-              onPress={() => {
-                handleAddMembers();
-                setIsOpen(false);
-              }}
+              onPress={handleViewMembers}
               disabled={loading}
             >
-              <Text style={styles.menuItemText}>Add Members</Text>
+              <Text style={styles.menuItemText}>View Members</Text>
             </Pressable>
+            {isAdmin && (
+              <Pressable
+                style={[styles.menuItem]}
+                onPress={handleAddMembers}
+                disabled={loading}
+              >
+                <Text style={styles.menuItemText}>Add Members</Text>
+              </Pressable>
+            )}
             <Pressable
               style={[styles.menuItem, styles.menuItemLast]}
               onPress={handleLeaveGroup}
@@ -298,6 +314,19 @@ export const GroupHeaderMenu = ({ groupId, onGroupLeft }) => {
           </View>
         )}
       </View>
+
+      {/* View Members Modal */}
+      <GroupMembersModal
+        visible={showMembers}
+        group={currentGroup}
+        currentUserId={currentUserId}
+        isAdmin={isAdmin}
+        onClose={() => setShowMembers(false)}
+        onMembersUpdate={(updatedGroup) => {
+          setCurrentGroup(updatedGroup);
+          onGroupUpdated?.(updatedGroup);
+        }}
+      />
 
       {/* Add Members Modal */}
       <RNModal

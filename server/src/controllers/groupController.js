@@ -15,8 +15,8 @@ export const createGroup = async (req, res, next) => {
     }
 
     const members = [
-      { userId: req.userId, joinedAt: new Date() },
-      ...memberIds.map(id => ({ userId: id, joinedAt: new Date() }))
+      { userId: req.userId, isAdmin: true, joinedAt: new Date() },
+      ...memberIds.map(id => ({ userId: id, isAdmin: false, joinedAt: new Date() }))
     ];
 
     const group = new Group({
@@ -119,7 +119,7 @@ export const addGroupMembers = async (req, res, next) => {
     for (const memberId of memberIds) {
       const exists = group.members.some(m => m.userId.toString() === memberId);
       if (!exists) {
-        group.members.push({ userId: memberId, joinedAt: new Date() });
+        group.members.push({ userId: memberId, isAdmin: false, joinedAt: new Date() });
         addedMembers.push(memberId);
       }
     }
@@ -210,6 +210,113 @@ export const clearGroup = async (req, res, next) => {
     await group.save();
 
     res.json({ message: 'Group cleared' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const makeAdmin = async (req, res, next) => {
+  try {
+    const { groupId } = req.params;
+    const { memberId } = req.body;
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+
+    // Only group creator can make admins
+    if (group.creatorId.toString() !== req.userId.toString()) {
+      return res.status(403).json({ message: 'Only group creator can manage admins' });
+    }
+
+    const member = group.members.find(m => m.userId.toString() === memberId);
+    if (!member) {
+      return res.status(404).json({ message: 'Member not found' });
+    }
+
+    member.isAdmin = true;
+    await group.save();
+    await group.populate([
+      { path: 'creatorId', select: '-password' },
+      { path: 'members.userId', select: '-password' }
+    ]);
+
+    res.json(group);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const removeAdmin = async (req, res, next) => {
+  try {
+    const { groupId } = req.params;
+    const { memberId } = req.body;
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+
+    // Only group creator can remove admins
+    if (group.creatorId.toString() !== req.userId.toString()) {
+      return res.status(403).json({ message: 'Only group creator can manage admins' });
+    }
+
+    const member = group.members.find(m => m.userId.toString() === memberId);
+    if (!member) {
+      return res.status(404).json({ message: 'Member not found' });
+    }
+
+    // Don't allow removing creator's admin status
+    if (group.creatorId.toString() === memberId) {
+      return res.status(422).json({ message: 'Cannot remove creator admin status' });
+    }
+
+    member.isAdmin = false;
+    await group.save();
+    await group.populate([
+      { path: 'creatorId', select: '-password' },
+      { path: 'members.userId', select: '-password' }
+    ]);
+
+    res.json(group);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const removeMember = async (req, res, next) => {
+  try {
+    const { groupId } = req.params;
+    const { memberId } = req.body;
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+
+    // Only admin can remove members
+    const isAdmin = group.creatorId.toString() === req.userId.toString() ||
+      group.members.find(m => m.userId.toString() === req.userId.toString() && m.isAdmin);
+    
+    if (!isAdmin) {
+      return res.status(403).json({ message: 'Only admins can remove members' });
+    }
+
+    // Don't allow removing creator
+    if (group.creatorId.toString() === memberId) {
+      return res.status(422).json({ message: 'Cannot remove group creator' });
+    }
+
+    group.members = group.members.filter(m => m.userId.toString() !== memberId);
+    await group.save();
+    await group.populate([
+      { path: 'creatorId', select: '-password' },
+      { path: 'members.userId', select: '-password' }
+    ]);
+
+    res.json(group);
   } catch (error) {
     next(error);
   }

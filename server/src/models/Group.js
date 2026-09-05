@@ -19,6 +19,10 @@ const groupSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User'
     },
+    isAdmin: {
+      type: Boolean,
+      default: false
+    },
     joinedAt: {
       type: Date,
       default: new Date()

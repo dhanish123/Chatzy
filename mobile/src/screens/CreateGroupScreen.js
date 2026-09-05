@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
 
 export const CreateGroupScreen = ({ navigation }) => {
   const { user } = useAuthStore();
-  const { setSelectedGroup } = useChatStore();
+  const { setSelectedGroup, addGroup } = useChatStore();
   const [groupName, setGroupName] = useState('');
   const [groupImage, setGroupImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -243,6 +243,8 @@ export const CreateGroupScreen = ({ navigation }) => {
         memberIds: selectedMembers
       });
 
+      // Add to store immediately so it appears in Groups list
+      addGroup(response.data);
       setSelectedGroup(response.data);
       Alert.alert('Success', 'Group created successfully');
       navigation.goBack();

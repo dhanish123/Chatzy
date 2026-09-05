@@ -637,11 +637,13 @@ export const ChatScreen = () => {
         {isGroup && (
           <GroupHeaderMenu
             groupId={conversationId}
+            group={selectedGroup}
+            currentUserId={user?._id}
             onGroupLeft={() => {
-              // Navigate back to chat list when leaving group
-              // This would be handled by the Navigation controller
-              // For now, clear the selected group
               setSelectedGroup(null);
+            }}
+            onGroupUpdated={(updatedGroup) => {
+              setSelectedGroup(updatedGroup);
             }}
           />
         )}
