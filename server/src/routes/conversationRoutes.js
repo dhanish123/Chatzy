@@ -4,7 +4,8 @@ import {
   getConversations,
   getConversation,
   markConversationAsRead,
-  clearConversation
+  clearConversation,
+  deleteConversation
 } from '../controllers/conversationController.js';
 import { authMiddleware } from '../middleware/auth.js';
 
@@ -15,5 +16,6 @@ router.get('/', authMiddleware, getConversations);
 router.get('/:conversationId', authMiddleware, getConversation);
 router.put('/:conversationId/read', authMiddleware, markConversationAsRead);
 router.delete('/:conversationId/clear', authMiddleware, clearConversation);
+router.delete('/:conversationId', authMiddleware, deleteConversation);
 
 export default router;

@@ -151,3 +151,40 @@ export const clearConversation = async (req, res, next) => {
     next(error);
   }
 };
+
+export const deleteConversation = async (req, res, next) => {
+  try {
+    const { conversationId } = req.params;
+
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ message: 'Conversation not found' });
+    }
+
+    const participant = conversation.participants.find(
+      p => p.userId.toString() === req.userId.toString()
+    );
+
+    if (!participant) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    // Remove user from participants
+    conversation.participants = conversation.participants.filter(
+      p => p.userId.toString() !== req.userId.toString()
+    );
+
+    // If no participants left, delete the conversation
+    if (conversation.participants.length === 0) {
+      await Conversation.findByIdAndDelete(conversationId);
+      // Also delete all messages in this conversation
+      await Message.deleteMany({ conversationId });
+    } else {
+      await conversation.save();
+    }
+
+    res.json({ message: 'Conversation deleted' });
+  } catch (error) {
+    next(error);
+  }
+};

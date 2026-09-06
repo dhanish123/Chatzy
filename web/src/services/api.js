@@ -79,7 +79,8 @@ export const conversationAPI = {
   getAll: () => api.get('/conversations'),
   get: (conversationId) => api.get(`/conversations/${conversationId}`),
   markAsRead: (conversationId) => api.put(`/conversations/${conversationId}/read`),
-  clear: (conversationId) => api.delete(`/conversations/${conversationId}/clear`)
+  clear: (conversationId) => api.delete(`/conversations/${conversationId}/clear`),
+  delete: (conversationId) => api.delete(`/conversations/${conversationId}`)
 };
 
 export const messageAPI = {
@@ -100,7 +101,8 @@ export const groupAPI = {
   removeAdmin: (groupId, memberId) => api.delete(`/groups/${groupId}/members/${memberId}/admin`),
   removeMember: (groupId, memberId) => api.delete(`/groups/${groupId}/members/${memberId}`),
   leave: (groupId) => api.delete(`/groups/${groupId}/leave`),
-  clear: (groupId) => api.delete(`/groups/${groupId}/clear`)
+  clear: (groupId) => api.delete(`/groups/${groupId}/clear`),
+  delete: (groupId) => api.delete(`/groups/${groupId}`)
 };
 
 export const uploadAPI = {

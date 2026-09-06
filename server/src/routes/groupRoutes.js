@@ -8,7 +8,8 @@ import {
   clearGroup,
   makeAdmin,
   removeAdmin,
-  removeMember
+  removeMember,
+  deleteGroup
 } from '../controllers/groupController.js';
 import { authMiddleware } from '../middleware/auth.js';
 
@@ -23,5 +24,6 @@ router.delete('/:groupId/members/:memberId/admin', authMiddleware, removeAdmin);
 router.delete('/:groupId/members/:memberId', authMiddleware, removeMember);
 router.delete('/:groupId/leave', authMiddleware, leaveGroup);
 router.delete('/:groupId/clear', authMiddleware, clearGroup);
+router.delete('/:groupId', authMiddleware, deleteGroup);
 
 export default router;

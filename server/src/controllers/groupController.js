@@ -380,3 +380,29 @@ export const removeMember = async (req, res, next) => {
     next(error);
   }
 };
+
+export const deleteGroup = async (req, res, next) => {
+  try {
+    const { groupId } = req.params;
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+
+    // Only group creator can delete the group
+    if (group.creatorId.toString() !== req.userId.toString()) {
+      return res.status(403).json({ message: 'Only group creator can delete the group' });
+    }
+
+    // Delete all messages in this group
+    await Message.deleteMany({ groupId });
+
+    // Delete the group
+    await Group.findByIdAndDelete(groupId);
+
+    res.json({ message: 'Group deleted' });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -1,17 +1,20 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useChatStore } from '../stores/chatStore.js';
 import { useGroupStore } from '../stores/groupStore.js';
 import { useFriendStore } from '../stores/friendStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { userStateAPI } from '../services/userStateAPI.js';
+import { conversationAPI } from '../services/api.js';
 import { Avatar } from './Avatar.jsx';
 import { EmptyState } from './EmptyState.jsx';
 import { LuMessageSquare } from 'react-icons/lu';
 
 export const ConversationList = ({ searchQuery = '' }) => {
-  const { conversations, setSelectedConversation, selectedConversation } = useChatStore();
+  const { conversations, setSelectedConversation, selectedConversation, setConversations } = useChatStore();
   const { setSelectedGroup } = useGroupStore();
   const { user } = useAuthStore();
+  const [contextMenu, setContextMenu] = useState(null);
+  const contextMenuRef = useRef(null);
 
   // Auto-select first conversation on load if none selected
   useEffect(() => {
@@ -24,6 +27,50 @@ export const ConversationList = ({ searchQuery = '' }) => {
       }
     }
   }, [conversations.length, selectedConversation]);
+
+  // Close context menu when clicking elsewhere
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target)) {
+        setContextMenu(null);
+      }
+    };
+
+    if (contextMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [contextMenu]);
+
+  const handleContextMenu = (e, convId) => {
+    e.preventDefault();
+    setContextMenu({
+      x: e.pageX,
+      y: e.pageY,
+      convId
+    });
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!contextMenu?.convId) return;
+    
+    try {
+      await conversationAPI.delete(contextMenu.convId);
+      // Remove from store
+      const updatedConversations = conversations.filter(c => c._id !== contextMenu.convId);
+      setConversations(updatedConversations);
+      
+      // Clear selection if deleted conversation was selected
+      if (selectedConversation?._id === contextMenu.convId) {
+        setSelectedConversation(null);
+        setSelectedGroup(null);
+      }
+      
+      setContextMenu(null);
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+    }
+  };
 
   if (conversations.length === 0) {
     return <EmptyState title="No conversations" description="Start a conversation with a friend" icon={LuMessageSquare} />;
@@ -51,6 +98,7 @@ export const ConversationList = ({ searchQuery = '' }) => {
               // Save selected conversation to MongoDB (fire and forget)
               userStateAPI.setSelectedConversation(conv._id);
             }}
+            onContextMenu={(e) => handleContextMenu(e, conv._id)}
             className="px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 flex items-center justify-between"
           >
             <div className="flex items-center gap-3 flex-1">
@@ -80,6 +128,25 @@ export const ConversationList = ({ searchQuery = '' }) => {
           </div>
         );
       })}
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <div
+          ref={contextMenuRef}
+          className="fixed bg-white border border-gray-300 rounded shadow-lg py-1 z-50"
+          style={{
+            left: `${contextMenu.x}px`,
+            top: `${contextMenu.y}px`
+          }}
+        >
+          <button
+            onClick={handleDeleteConversation}
+            className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-red-600"
+          >
+            Delete Chat
+          </button>
+        </div>
+      )}
     </div>
   );
 };
