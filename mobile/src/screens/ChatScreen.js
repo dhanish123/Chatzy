@@ -677,6 +677,7 @@ export const ChatScreen = () => {
 
       <FlatList
         ref={flatListRef}
+        inverted={true}
         data={isOtherUserTyping ? [...messages, { _id: 'typing-indicator' }] : messages}
         renderItem={renderMessage}
         keyExtractor={item => item._id}

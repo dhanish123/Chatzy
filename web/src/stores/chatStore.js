@@ -10,8 +10,8 @@ export const useChatStore = create((set) => ({
   setSelectedConversation: (conversation) => set({ selectedConversation: conversation }),
   setMessages: (messages) => set({ messages }),
   addMessage: (message) => set((state) => {
-    // Quick append - don't sort on every message for speed
-    // Messages should already be in order from socket events
+    // Just append new messages to the end
+    // They will be reversed during rendering
     return { messages: [...state.messages, message] };
   }),
   updateMessage: (messageId, updates) =>

@@ -63,12 +63,9 @@ export const ChatWindow = () => {
       try {
         setLoading(true);
         const response = await messageAPI.getMessages(conversationId);
-        // Sort messages by createdAt - OLDEST FIRST
-        // This way when rendered with .map(), oldest appears at top, newest at bottom
-        const sortedMessages = response.data.sort((a, b) => 
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        );
-        setMessages(sortedMessages);
+        // Don't sort - server returns them in order
+        // We'll reverse them when displaying
+        setMessages(response.data);
         
         if (!isGroup && selectedConversation) {
           await conversationAPI.markAsRead(conversationId);
@@ -262,39 +259,15 @@ export const ChatWindow = () => {
     if (!content && !mediaUrl) return;
 
     try {
-      // Create optimistic message for instant UI feedback
-      const optimisticId = `temp-${Date.now()}`;
-      const optimisticMessage = {
-        _id: optimisticId,
-        conversationId,
-        content,
-        mediaUrl,
-        mediaType,
-        senderId: { _id: user._id, username: user.username, profileImage: user.profileImage },
-        replyTo: replyTo,
-        createdAt: new Date().toISOString(),
-        status: 'sending',
-        isDeleted: false,
-        readBy: [],
-        isSystemMessage: false,
-        isEdited: false
-      };
-
-      // Show message immediately
-      addMessage(optimisticMessage);
-
-      // Send to server in background
       const response = await messageAPI.send({
         conversationId,
         content,
         mediaUrl,
         mediaType,
-        replyTo: replyTo?._id,
+        replyTo,
         groupId: isGroup ? conversationId : undefined
       });
-
-      // Replace optimistic message with real one
-      updateMessage(optimisticId, response.data);
+      addMessage(response.data);
 
       if (socket) {
         if (isGroup) {
@@ -327,20 +300,12 @@ export const ChatWindow = () => {
 
   const handleEditMessage = async (messageId, content) => {
     try {
-      // Optimistic update - change immediately
-      updateMessage(messageId, { content, isEdited: true });
+      const response = await messageAPI.edit(messageId, content);
+      updateMessage(messageId, { content: response.data.content, isEdited: true });
       setEditingMessage(null);
 
-      // Send to server
-      const response = await messageAPI.edit(messageId, content);
-      
-      // Verify update
-      if (response.data) {
-        updateMessage(messageId, { content: response.data.content, isEdited: true });
-
-        if (socket) {
-          socket.emit('messageUpdated', { messageId, content: response.data.content, isEdited: true });
-        }
+      if (socket) {
+        socket.emit('messageUpdated', { messageId, content: response.data.content, isEdited: true });
       }
     } catch (error) {
       console.error('Error editing message:', error);
@@ -349,19 +314,11 @@ export const ChatWindow = () => {
 
   const handleDeleteMessage = async (messageId) => {
     try {
-      // Optimistic update - show deleted immediately
-      updateMessage(messageId, { isDeleted: true, content: '' });
-
-      // Send to server
       const response = await messageAPI.delete(messageId);
+      updateMessage(messageId, response.data);
 
-      // Verify deletion
-      if (response.data) {
-        updateMessage(messageId, response.data);
-
-        if (socket) {
-          socket.emit('messageDeleted', { messageId });
-        }
+      if (socket) {
+        socket.emit('messageDeleted', { messageId });
       }
     } catch (error) {
       console.error('Error deleting message:', error);
@@ -463,7 +420,7 @@ export const ChatWindow = () => {
             Start a conversation
           </div>
         ) : (
-          messages.map((msg) => 
+          [...messages].reverse().map((msg) => 
             msg.isSystemMessage ? (
               <SystemMessage key={msg._id} message={msg} />
             ) : (
