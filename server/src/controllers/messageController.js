@@ -207,6 +207,9 @@ export const deleteMessage = async (req, res, next) => {
     message.content = '';
     message.mediaUrl = null;
     await message.save();
+    
+    // Populate senderId before returning
+    await message.populate('senderId', '-password');
 
     res.json(message);
   } catch (error) {
