@@ -12,7 +12,7 @@ import { CreateGroupModal } from './CreateGroupModal.jsx';
 
 export const Sidebar = () => {
   const { user } = useAuthStore();
-  const { setSelectedGroup } = useGroupStore();
+  const { setSelectedGroup, addGroup } = useGroupStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,6 +40,9 @@ export const Sidebar = () => {
   };
 
   const handleGroupCreated = (group) => {
+    // Add the new group to the store immediately
+    addGroup(group);
+    // Set it as the selected group
     setSelectedGroup(group);
     setShowCreateGroup(false);
   };
