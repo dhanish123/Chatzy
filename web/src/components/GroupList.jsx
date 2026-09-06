@@ -15,10 +15,6 @@ export const GroupList = () => {
   const [contextMenu, setContextMenu] = useState(null);
   const contextMenuRef = useRef(null);
 
-  if (groups.length === 0) {
-    return <EmptyState title="No groups" description="Create or join a group" icon={LuUsers} />;
-  }
-
   // Close context menu when clicking elsewhere
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -62,6 +58,10 @@ export const GroupList = () => {
       console.error('Error deleting group:', error);
     }
   };
+
+  if (groups.length === 0) {
+    return <EmptyState title="No groups" description="Create or join a group" icon={LuUsers} />;
+  }
 
   return (
     <div>
