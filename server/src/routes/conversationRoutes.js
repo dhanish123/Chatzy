@@ -13,9 +13,9 @@ const router = express.Router();
 
 router.post('/', authMiddleware, getOrCreateConversation);
 router.get('/', authMiddleware, getConversations);
-router.get('/:conversationId', authMiddleware, getConversation);
 router.put('/:conversationId/read', authMiddleware, markConversationAsRead);
 router.delete('/:conversationId/clear', authMiddleware, clearConversation);
 router.delete('/:conversationId', authMiddleware, deleteConversation);
+router.get('/:conversationId', authMiddleware, getConversation);
 
 export default router;

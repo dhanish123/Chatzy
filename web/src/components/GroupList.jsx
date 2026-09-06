@@ -41,10 +41,15 @@ export const GroupList = () => {
   const handleDeleteGroup = async () => {
     if (!contextMenu?.groupId) return;
     
+    console.log('Deleting group:', contextMenu.groupId);
+    
     try {
-      await groupAPI.delete(contextMenu.groupId);
+      const response = await groupAPI.delete(contextMenu.groupId);
+      console.log('Delete response:', response);
+      
       // Remove from store
       const updatedGroups = groups.filter(g => g._id !== contextMenu.groupId);
+      console.log('Updated groups:', updatedGroups);
       setGroups(updatedGroups);
       
       // Clear selection if deleted group was selected
