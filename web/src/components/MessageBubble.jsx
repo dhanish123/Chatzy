@@ -1,7 +1,7 @@
 import { BsCheck2, BsCheck2All } from 'react-icons/bs';
 import { Avatar } from './Avatar.jsx';
 import { AudioMessage } from './AudioMessage.jsx';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 export const MessageBubble = ({
   message,
@@ -15,6 +15,8 @@ export const MessageBubble = ({
   const canEdit = isOwn && !message.isDeleted && Date.now() - new Date(message.createdAt).getTime() < 10 * 60 * 1000;
   const canDelete = isOwn && !message.isDeleted && Date.now() - new Date(message.createdAt).getTime() < 10 * 60 * 1000;
   const [imageLoadError, setImageLoadError] = useState(false);
+  const [contextMenu, setContextMenu] = useState(null);
+  const contextMenuRef = useRef(null);
 
   // Check if media URL is valid (not old /uploads/ path)
   const isValidMediaUrl = message.mediaUrl && !message.mediaUrl.startsWith('/uploads/');
@@ -23,11 +25,53 @@ export const MessageBubble = ({
     setImageLoadError(true);
   };
 
+  // Handle right-click context menu
+  const handleContextMenu = (e) => {
+    e.preventDefault();
+    // Only show context menu if user can edit or delete
+    if (!canEdit && !canDelete) return;
+    
+    setContextMenu({
+      x: e.pageX,
+      y: e.pageY
+    });
+  };
+
+  // Close context menu when clicking elsewhere
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target)) {
+        setContextMenu(null);
+      }
+    };
+
+    if (contextMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [contextMenu]);
+
+  const handleDelete = () => {
+    onDelete?.(message._id);
+    setContextMenu(null);
+  };
+
+  const handleEdit = () => {
+    onEdit?.(message);
+    setContextMenu(null);
+  };
+
+  const handleReply = () => {
+    onReply?.(message);
+    setContextMenu(null);
+  };
+
   return (
     <div
       className={`flex mb-3 ${isOwn ? 'justify-end' : 'justify-start'}`}
       onMouseEnter={() => onHover?.(message._id)}
       onMouseLeave={() => onHover?.(null)}
+      onContextMenu={handleContextMenu}
     >
       {!isOwn && (
         <Avatar 
@@ -125,6 +169,43 @@ export const MessageBubble = ({
           </div>
         )}
       </div>
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <div
+          ref={contextMenuRef}
+          className="fixed bg-white border border-gray-300 rounded shadow-lg py-1 z-50"
+          style={{
+            left: `${contextMenu.x}px`,
+            top: `${contextMenu.y}px`
+          }}
+        >
+          {canEdit && (
+            <button
+              onClick={handleEdit}
+              className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-gray-700"
+            >
+              Edit
+            </button>
+          )}
+          {canDelete && (
+            <button
+              onClick={handleDelete}
+              className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-red-600"
+            >
+              Delete
+            </button>
+          )}
+          {onReply && (
+            <button
+              onClick={handleReply}
+              className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-gray-700"
+            >
+              Reply
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };

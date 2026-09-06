@@ -559,7 +559,25 @@ export const ChatScreen = () => {
       <Pressable
         onLongPress={() => {
           if (canEdit || canDelete) {
-            // Show action menu (edit/delete/reply)
+            Alert.alert('Message Actions', '', [
+              ...(canEdit ? [{
+                text: 'Edit',
+                onPress: () => handleEditMessage(item)
+              }] : []),
+              ...(canDelete ? [{
+                text: 'Delete',
+                onPress: () => handleDeleteMessage(item._id),
+                style: 'destructive'
+              }] : []),
+              {
+                text: 'Reply',
+                onPress: () => setReplyingTo(item)
+              },
+              {
+                text: 'Cancel',
+                style: 'cancel'
+              }
+            ]);
           }
         }}
       >
