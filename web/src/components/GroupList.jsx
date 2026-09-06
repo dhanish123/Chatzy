@@ -42,6 +42,7 @@ export const GroupList = () => {
     if (!contextMenu?.groupId) return;
     
     console.log('Deleting group:', contextMenu.groupId);
+    console.log('Current groups before delete:', groups);
     
     try {
       const response = await groupAPI.delete(contextMenu.groupId);
@@ -49,11 +50,14 @@ export const GroupList = () => {
       
       // Remove from store
       const updatedGroups = groups.filter(g => g._id !== contextMenu.groupId);
-      console.log('Updated groups:', updatedGroups);
+      console.log('Updated groups after filter:', updatedGroups);
+      console.log('About to call setGroups with:', updatedGroups);
       setGroups(updatedGroups);
+      console.log('setGroups called');
       
       // Clear selection if deleted group was selected
       if (selectedGroup?._id === contextMenu.groupId) {
+        console.log('Clearing selected group');
         setSelectedGroup(null);
         setSelectedConversation(null);
       }
