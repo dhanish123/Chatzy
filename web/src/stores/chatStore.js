@@ -10,9 +10,9 @@ export const useChatStore = create((set) => ({
   setSelectedConversation: (conversation) => set({ selectedConversation: conversation }),
   setMessages: (messages) => set({ messages }),
   addMessage: (message) => set((state) => {
-    // Just append new messages to the end
-    // They will be reversed during rendering
-    return { messages: [...state.messages, message] };
+    // Add new messages at the BEGINNING of array
+    // So when reversed for display, they appear at bottom
+    return { messages: [message, ...state.messages] };
   }),
   updateMessage: (messageId, updates) =>
     set((state) => ({
