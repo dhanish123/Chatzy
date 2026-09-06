@@ -22,6 +22,10 @@ export const useChatStore = create((set) => ({
     })),
   setGroups: (groups) => set({ groups }),
   addGroup: (group) => set((state) => ({ groups: [group, ...state.groups] })),
+  updateGroup: (groupId, updates) =>
+    set((state) => ({
+      groups: state.groups.map((g) => (g._id === groupId ? { ...g, ...updates } : g))
+    })),
   setSelectedGroup: (group) => set({ selectedGroup: group }),
   setLoading: (loading) => set({ loading })
 }));

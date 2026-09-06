@@ -17,7 +17,7 @@ import { Avatar } from './Avatar.jsx';
 export const ChatWindow = () => {
   const { user } = useAuthStore();
   const { selectedConversation, messages, setMessages, setConversations, conversations, addMessage, updateMessage } = useChatStore();
-  const { selectedGroup, setSelectedGroup } = useGroupStore();
+  const { selectedGroup, setSelectedGroup, groups, setGroups } = useGroupStore();
   const [loading, setLoading] = useState(true);
   const [hoveredMessage, setHoveredMessage] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
@@ -269,14 +269,23 @@ export const ChatWindow = () => {
       });
       addMessage(response.data);
 
-      // Update the conversation's lastMessage in the sidebar immediately
+      // Update the conversation's/group's lastMessage in the sidebar immediately
       if (!isGroup && selectedConversation) {
+        // For private chats
         const updatedConversations = conversations.map(conv => 
           conv._id === conversationId 
             ? { ...conv, lastMessage: response.data }
             : conv
         );
         setConversations(updatedConversations);
+      } else if (isGroup && selectedGroup) {
+        // For group chats - update groups in the store
+        const updatedGroups = groups.map(grp => 
+          grp._id === conversationId 
+            ? { ...grp, lastMessage: response.data }
+            : grp
+        );
+        setGroups(updatedGroups);
       }
 
       if (socket) {
