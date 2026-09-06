@@ -262,15 +262,39 @@ export const ChatWindow = () => {
     if (!content && !mediaUrl) return;
 
     try {
+      // Create optimistic message for instant UI feedback
+      const optimisticId = `temp-${Date.now()}`;
+      const optimisticMessage = {
+        _id: optimisticId,
+        conversationId,
+        content,
+        mediaUrl,
+        mediaType,
+        senderId: { _id: user._id, username: user.username, profileImage: user.profileImage },
+        replyTo: replyTo,
+        createdAt: new Date().toISOString(),
+        status: 'sending',
+        isDeleted: false,
+        readBy: [],
+        isSystemMessage: false,
+        isEdited: false
+      };
+
+      // Show message immediately
+      addMessage(optimisticMessage);
+
+      // Send to server in background
       const response = await messageAPI.send({
         conversationId,
         content,
         mediaUrl,
         mediaType,
-        replyTo,
+        replyTo: replyTo?._id,
         groupId: isGroup ? conversationId : undefined
       });
-      addMessage(response.data);
+
+      // Replace optimistic message with real one
+      updateMessage(optimisticId, response.data);
 
       if (socket) {
         if (isGroup) {
@@ -303,12 +327,20 @@ export const ChatWindow = () => {
 
   const handleEditMessage = async (messageId, content) => {
     try {
-      const response = await messageAPI.edit(messageId, content);
-      updateMessage(messageId, { content: response.data.content, isEdited: true });
+      // Optimistic update - change immediately
+      updateMessage(messageId, { content, isEdited: true });
       setEditingMessage(null);
 
-      if (socket) {
-        socket.emit('messageUpdated', { messageId, content: response.data.content, isEdited: true });
+      // Send to server
+      const response = await messageAPI.edit(messageId, content);
+      
+      // Verify update
+      if (response.data) {
+        updateMessage(messageId, { content: response.data.content, isEdited: true });
+
+        if (socket) {
+          socket.emit('messageUpdated', { messageId, content: response.data.content, isEdited: true });
+        }
       }
     } catch (error) {
       console.error('Error editing message:', error);
@@ -317,11 +349,19 @@ export const ChatWindow = () => {
 
   const handleDeleteMessage = async (messageId) => {
     try {
-      const response = await messageAPI.delete(messageId);
-      updateMessage(messageId, response.data);
+      // Optimistic update - show deleted immediately
+      updateMessage(messageId, { isDeleted: true, content: '' });
 
-      if (socket) {
-        socket.emit('messageDeleted', { messageId });
+      // Send to server
+      const response = await messageAPI.delete(messageId);
+
+      // Verify deletion
+      if (response.data) {
+        updateMessage(messageId, response.data);
+
+        if (socket) {
+          socket.emit('messageDeleted', { messageId });
+        }
       }
     } catch (error) {
       console.error('Error deleting message:', error);
