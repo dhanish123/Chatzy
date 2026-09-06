@@ -140,7 +140,10 @@ export const ConversationList = ({ searchQuery = '' }) => {
           }}
         >
           <button
-            onClick={handleDeleteConversation}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteConversation();
+            }}
             className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-red-600"
           >
             Delete Chat
