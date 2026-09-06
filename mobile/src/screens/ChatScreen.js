@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
 
 export const ChatScreen = () => {
   const { user } = useAuthStore();
-  const { selectedConversation, selectedGroup, messages, setMessages, addMessage, updateMessage, setSelectedGroup } = useChatStore();
+  const { selectedConversation, selectedGroup, messages, setMessages, setConversations, conversations, addMessage, updateMessage, setSelectedGroup } = useChatStore();
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
@@ -360,6 +360,16 @@ export const ChatScreen = () => {
         addMessage(response.data);
         setMessage('');
         setReplyingTo(null);
+
+        // Update the conversation's lastMessage in the sidebar immediately
+        if (!isGroup && selectedConversation) {
+          const updatedConversations = conversations.map(conv => 
+            conv._id === conversationId 
+              ? { ...conv, lastMessage: response.data }
+              : conv
+          );
+          setConversations(updatedConversations);
+        }
 
         if (socket) {
           if (isGroup) {

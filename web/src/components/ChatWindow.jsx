@@ -16,7 +16,7 @@ import { Avatar } from './Avatar.jsx';
 
 export const ChatWindow = () => {
   const { user } = useAuthStore();
-  const { selectedConversation, messages, setMessages, addMessage, updateMessage } = useChatStore();
+  const { selectedConversation, messages, setMessages, setConversations, conversations, addMessage, updateMessage } = useChatStore();
   const { selectedGroup, setSelectedGroup } = useGroupStore();
   const [loading, setLoading] = useState(true);
   const [hoveredMessage, setHoveredMessage] = useState(null);
@@ -268,6 +268,16 @@ export const ChatWindow = () => {
         groupId: isGroup ? conversationId : undefined
       });
       addMessage(response.data);
+
+      // Update the conversation's lastMessage in the sidebar immediately
+      if (!isGroup && selectedConversation) {
+        const updatedConversations = conversations.map(conv => 
+          conv._id === conversationId 
+            ? { ...conv, lastMessage: response.data }
+            : conv
+        );
+        setConversations(updatedConversations);
+      }
 
       if (socket) {
         if (isGroup) {
