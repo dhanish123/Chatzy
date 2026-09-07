@@ -12,10 +12,13 @@ export const MessageBubble = ({
   onDelete = null,
   onHover = null
 }) => {
-  const canEdit = isOwn && !message.isDeleted && Date.now() - new Date(message.createdAt).getTime() < 10 * 60 * 1000;
-  const canDelete = isOwn && !message.isDeleted && Date.now() - new Date(message.createdAt).getTime() < 10 * 60 * 1000;
+  // Allow edit/delete for own messages (remove time limit for now)
+  const canEdit = isOwn && !message.isDeleted;
+  const canDelete = isOwn && !message.isDeleted;
+  const canReply = true; // Allow reply on all messages
   const [imageLoadError, setImageLoadError] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
+  const [showActions, setShowActions] = useState(false);
   const contextMenuRef = useRef(null);
 
   // Check if media URL is valid (not old /uploads/ path)
@@ -68,9 +71,15 @@ export const MessageBubble = ({
 
   return (
     <div
-      className={`flex mb-3 ${isOwn ? 'justify-end' : 'justify-start'}`}
-      onMouseEnter={() => onHover?.(message._id)}
-      onMouseLeave={() => onHover?.(null)}
+      className={`flex mb-3 ${isOwn ? 'justify-end' : 'justify-start'} group`}
+      onMouseEnter={() => {
+        onHover?.(message._id);
+        setShowActions(true);
+      }}
+      onMouseLeave={() => {
+        onHover?.(null);
+        setShowActions(false);
+      }}
       onContextMenu={handleContextMenu}
     >
       {!isOwn && (
@@ -161,11 +170,33 @@ export const MessageBubble = ({
           )}
         </div>
 
-        {(canEdit || canDelete) && (
-          <div className="flex gap-2 mt-1 text-xs">
-            {canEdit && <button onClick={() => onEdit?.(message)} className="text-blue-600 hover:underline">Edit</button>}
-            {canDelete && <button onClick={() => onDelete?.(message._id)} className="text-red-600 hover:underline">Delete</button>}
-            {onReply && <button onClick={() => onReply?.(message)} className="text-gray-600 hover:underline">Reply</button>}
+        {/* Action buttons - always visible on mobile, show on hover on desktop */}
+        {(canEdit || canDelete || canReply) && (
+          <div className={`flex gap-2 mt-2 text-xs flex-wrap ${showActions || true ? 'visible' : 'hidden md:group-hover:flex'}`}>
+            {canReply && onReply && (
+              <button 
+                onClick={() => onReply?.(message)} 
+                className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs md:text-sm"
+              >
+                ↩️ Reply
+              </button>
+            )}
+            {canEdit && (
+              <button 
+                onClick={() => onEdit?.(message)} 
+                className="px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-xs md:text-sm"
+              >
+                ✏️ Edit
+              </button>
+            )}
+            {canDelete && (
+              <button 
+                onClick={() => onDelete?.(message._id)} 
+                className="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-xs md:text-sm"
+              >
+                🗑️ Delete
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -180,6 +211,14 @@ export const MessageBubble = ({
             top: `${contextMenu.y}px`
           }}
         >
+          {canReply && onReply && (
+            <button
+              onClick={handleReply}
+              className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-gray-700"
+            >
+              Reply
+            </button>
+          )}
           {canEdit && (
             <button
               onClick={handleEdit}
@@ -194,14 +233,6 @@ export const MessageBubble = ({
               className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-red-600"
             >
               Delete
-            </button>
-          )}
-          {onReply && (
-            <button
-              onClick={handleReply}
-              className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-gray-700"
-            >
-              Reply
             </button>
           )}
         </div>
