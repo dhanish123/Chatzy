@@ -505,9 +505,6 @@ export const ChatWindow = () => {
           onStopTyping={handleStopTyping}
         />
       )}
-    </div>
-};
-
 
       {/* Members Modal for Groups */}
       {isGroup && selectedGroup && (
