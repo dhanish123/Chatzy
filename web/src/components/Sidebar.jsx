@@ -10,7 +10,7 @@ import { ConversationList } from './ConversationList.jsx';
 import { GroupList } from './GroupList.jsx';
 import { CreateGroupModal } from './CreateGroupModal.jsx';
 
-export const Sidebar = () => {
+export const Sidebar = ({ onSelectConversation, onSelectGroup }) => {
   const { user } = useAuthStore();
   const { setSelectedGroup, addGroup } = useGroupStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -48,11 +48,11 @@ export const Sidebar = () => {
   };
 
   return (
-    <div className="w-full md:w-80 bg-white border-r border-gray-200 flex flex-col h-full overflow-hidden">
+    <div className="w-full h-full bg-white border-r border-gray-200 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">Chatzy<span className="text-gray-500 font-normal text-lg ml-2">- {user?.username}</span></h1>
+      <div className="p-3 md:p-4 border-b border-gray-200">
+        <div className="flex items-center justify-between mb-3 md:mb-4">
+          <h1 className="text-xl md:text-2xl font-bold">Chatzy<span className="text-gray-500 font-normal text-sm md:text-lg ml-1 md:ml-2">- {user?.username}</span></h1>
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
@@ -75,20 +75,20 @@ export const Sidebar = () => {
       {/* Conversations and Groups */}
       <div className="flex-1 overflow-y-auto">
         <div>
-          <div className="flex items-center justify-between px-4 py-2 hover:bg-gray-50 cursor-pointer"
+          <div className="flex items-center justify-between px-3 md:px-4 py-2 hover:bg-gray-50 cursor-pointer"
             onClick={() => setExpandPrivate(!expandPrivate)}>
-            <h2 className="font-semibold text-sm">Private Chats</h2>
-            <span>{expandPrivate ? '▼' : '▶'}</span>
+            <h2 className="font-semibold text-xs md:text-sm">Private Chats</h2>
+            <span className="text-xs md:text-sm">{expandPrivate ? '▼' : '▶'}</span>
           </div>
-          {expandPrivate && <ConversationList searchQuery={searchQuery} />}
+          {expandPrivate && <ConversationList searchQuery={searchQuery} onSelectConversation={onSelectConversation} />}
         </div>
 
         <div>
-          <div className="flex items-center justify-between px-4 py-2 hover:bg-gray-50 cursor-pointer"
+          <div className="flex items-center justify-between px-3 md:px-4 py-2 hover:bg-gray-50 cursor-pointer"
             onClick={() => setExpandGroups(!expandGroups)}>
-            <h2 className="font-semibold text-sm">Groups</h2>
+            <h2 className="font-semibold text-xs md:text-sm">Groups</h2>
             <div className="flex items-center gap-2">
-              <span>{expandGroups ? '▼' : '▶'}</span>
+              <span className="text-xs md:text-sm">{expandGroups ? '▼' : '▶'}</span>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -96,11 +96,11 @@ export const Sidebar = () => {
                 }}
                 className="text-blue-600 hover:text-blue-700"
               >
-                <RiAddLine />
+                <RiAddLine className="w-4 h-4 md:w-5 md:h-5" />
               </button>
             </div>
           </div>
-          {expandGroups && <GroupList />}
+          {expandGroups && <GroupList onSelectGroup={onSelectGroup} />}
         </div>
       </div>
 

@@ -8,7 +8,7 @@ import { Avatar } from './Avatar.jsx';
 import { EmptyState } from './EmptyState.jsx';
 import { LuUsers } from 'react-icons/lu';
 
-export const GroupList = () => {
+export const GroupList = ({ onSelectGroup }) => {
   const { user } = useAuthStore();
   const { groups, setSelectedGroup, selectedGroup, setGroups } = useGroupStore();
   const { setSelectedConversation } = useChatStore();
@@ -88,15 +88,19 @@ export const GroupList = () => {
               setSelectedConversation(null); // Clear private chat when selecting group
               // Save selected group to MongoDB (fire and forget)
               userStateAPI.setSelectedGroup(group._id);
+              // Call parent callback for mobile navigation
+              if (onSelectGroup) {
+                onSelectGroup(group);
+              }
             }}
             onContextMenu={(e) => handleContextMenu(e, group._id)}
-            className="px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 flex items-center justify-between"
+            className="px-2 md:px-4 py-2 md:py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 flex items-center justify-between"
           >
-            <div className="flex items-center gap-3 flex-1">
+            <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
               <Avatar src={group.image} initials={group.name[0]} size="md" />
               <div className="flex-1 min-w-0">
-                <p className="font-medium">{group.name}</p>
-                <p className="text-sm text-gray-500 truncate">
+                <p className="font-medium text-sm md:text-base truncate">{group.name}</p>
+                <p className="text-xs text-gray-500 truncate">
                   {group.lastMessage?.mediaType === 'audio' 
                     ? '🎙️ Audio message'
                     : group.lastMessage?.mediaType === 'image'
@@ -112,7 +116,7 @@ export const GroupList = () => {
               </div>
             </div>
             {unreadCount > 0 && selectedGroup?._id !== group._id && (
-              <span className="bg-blue-600 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
+              <span className="bg-blue-600 text-white text-xs rounded-full w-5 h-5 md:w-6 md:h-6 flex items-center justify-center flex-shrink-0">
                 {unreadCount}
               </span>
             )}

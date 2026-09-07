@@ -37,13 +37,13 @@ export const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
-        <h1 className="text-3xl font-bold text-center mb-6">Chatzy</h1>
-        <h2 className="text-2xl font-semibold text-center mb-6">Welcome Back</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="bg-white rounded-lg shadow-lg p-6 md:p-8 w-full max-w-md">
+        <h1 className="text-2xl md:text-3xl font-bold text-center mb-4 md:mb-6">Chatzy</h1>
+        <h2 className="text-xl md:text-2xl font-semibold text-center mb-6 md:mb-8">Welcome Back</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {errors.form && <div className="bg-red-100 text-red-700 p-3 rounded">{errors.form}</div>}
+          {errors.form && <div className="bg-red-100 text-red-700 p-3 rounded text-sm md:text-base">{errors.form}</div>}
 
           <Input
             label="Email"
@@ -77,7 +77,7 @@ export const Login = () => {
           </Button>
         </form>
 
-        <p className="text-center mt-4">
+        <p className="text-center mt-4 text-sm md:text-base">
           Don't have an account?{' '}
           <Link to="/register" className="text-blue-600 hover:underline">
             Create one

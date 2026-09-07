@@ -9,7 +9,7 @@ import { Avatar } from './Avatar.jsx';
 import { EmptyState } from './EmptyState.jsx';
 import { LuMessageSquare } from 'react-icons/lu';
 
-export const ConversationList = ({ searchQuery = '' }) => {
+export const ConversationList = ({ searchQuery = '', onSelectConversation }) => {
   const { conversations, setSelectedConversation, selectedConversation, setConversations } = useChatStore();
   const { setSelectedGroup } = useGroupStore();
   const { user } = useAuthStore();
@@ -97,15 +97,19 @@ export const ConversationList = ({ searchQuery = '' }) => {
               setSelectedGroup(null); // Clear group when selecting private chat
               // Save selected conversation to MongoDB (fire and forget)
               userStateAPI.setSelectedConversation(conv._id);
+              // Call parent callback for mobile navigation
+              if (onSelectConversation) {
+                onSelectConversation(conv);
+              }
             }}
             onContextMenu={(e) => handleContextMenu(e, conv._id)}
-            className="px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 flex items-center justify-between"
+            className="px-2 md:px-4 py-2 md:py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 flex items-center justify-between"
           >
-            <div className="flex items-center gap-3 flex-1">
+            <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
               <Avatar src={otherUser.userId.profileImage} initials={otherUser.userId.username?.[0] || 'U'} size="md" />
               <div className="flex-1 min-w-0">
-                <p className="font-medium">{otherUser.userId.username}</p>
-                <p className="text-sm text-gray-500 truncate">
+                <p className="font-medium text-sm md:text-base truncate">{otherUser.userId.username}</p>
+                <p className="text-xs text-gray-500 truncate">
                   {conv.lastMessage?.mediaType === 'audio' 
                     ? '🎙️ Audio message'
                     : conv.lastMessage?.mediaType === 'image'
@@ -121,7 +125,7 @@ export const ConversationList = ({ searchQuery = '' }) => {
               </div>
             </div>
             {otherUser.unreadCount > 0 && selectedConversation?._id !== conv._id && (
-              <span className="bg-blue-600 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
+              <span className="bg-blue-600 text-white text-xs rounded-full w-5 h-5 md:w-6 md:h-6 flex items-center justify-center flex-shrink-0">
                 {otherUser.unreadCount}
               </span>
             )}
