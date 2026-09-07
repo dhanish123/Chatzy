@@ -82,15 +82,14 @@ export const Chat = () => {
         <Sidebar onSelectConversation={handleSelectConversation} onSelectGroup={handleSelectGroup} />
       </div>
 
-      {/* Chat Window - full screen on mobile, flex-1 on desktop */}
-      {selectedConversation || selectedGroup ? (
+      {/* Chat Window - full screen on mobile when showChat=true, flex-1 on desktop */}
+      {showChat && (selectedConversation || selectedGroup) ? (
         <div className="w-full md:flex-1 flex flex-col h-full">
           <Suspense fallback={<div className="flex-1 flex items-center justify-center bg-gray-50"><Loader size="lg" /></div>}>
             <ChatWindow 
               onBackClick={() => {
                 setShowChat(false);
-                setSelectedConversation(null);
-                setSelectedGroup(null);
+                // Don't clear selection, just hide chat - sidebar will show with conversations
               }}
             />
           </Suspense>
