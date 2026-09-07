@@ -6,6 +6,8 @@ import { useAuthStore } from '../stores/authStore.js';
 import { conversationAPI, groupAPI } from '../services/api.js';
 import { getSocket, initializeSocket, joinUserRoom } from '../services/socket.js';
 import { MaterialIcons } from '@expo/vector-icons';
+import { SkeletonList } from '../components/Skeleton.js';
+import { showErrorToast, showSuccessToast } from '../utils/errorHandler.js';
 
 const styles = StyleSheet.create({
   container: {
@@ -79,6 +81,33 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#6b7280',
     fontSize: 16
+  },
+  emptyIcon: {
+    marginBottom: 12
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32
+  },
+  errorText: {
+    color: '#991b1b',
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginBottom: 16
+  },
+  retryButton: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 6
+  },
+  retryButtonText: {
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 14
   }
 });
 
@@ -86,11 +115,13 @@ export const ChatListScreen = ({ navigation }) => {
   const { user, token } = useAuthStore();
   const { conversations, groups, setConversations, setSelectedConversation, setGroups, setSelectedGroup } = useChatStore();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
       const loadData = async () => {
         try {
+          setError(null);
           if (!getSocket() && token) {
             initializeSocket(token);
             joinUserRoom(user?._id);
@@ -123,6 +154,8 @@ export const ChatListScreen = ({ navigation }) => {
           }
         } catch (error) {
           console.error('Error loading chats:', error);
+          setError(error);
+          showErrorToast(error, 'Failed to load conversations');
         } finally {
           setLoading(false);
         }
@@ -131,6 +164,30 @@ export const ChatListScreen = ({ navigation }) => {
       loadData();
     }, [token])
   );
+
+  const handleRetry = async () => {
+    setLoading(true);
+    const loadData = async () => {
+      try {
+        setError(null);
+        const [convRes, groupRes] = await Promise.all([
+          conversationAPI.getAll(),
+          groupAPI.getAll()
+        ]);
+
+        setConversations(convRes.data);
+        setGroups(groupRes.data);
+        showSuccessToast('Conversations loaded');
+      } catch (error) {
+        console.error('Error loading chats:', error);
+        setError(error);
+        showErrorToast(error, 'Failed to load conversations');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  };
 
   const handleConversationPress = (conversation) => {
     setSelectedConversation(conversation);
@@ -198,13 +255,25 @@ export const ChatListScreen = ({ navigation }) => {
         </Pressable>
       </View>
 
-      {loading ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyText}>Loading...</Text>
+      {error ? (
+        <View style={styles.errorContainer}>
+          <MaterialIcons name="error-outline" size={48} color="#dc2626" style={styles.emptyIcon} />
+          <Text style={styles.errorText}>Failed to load conversations</Text>
+          <Pressable style={styles.retryButton} onPress={handleRetry}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </Pressable>
+        </View>
+      ) : loading ? (
+        <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
+          <SkeletonList count={4} />
         </View>
       ) : allChats.length === 0 ? (
         <View style={styles.empty}>
+          <MaterialIcons name="chat-bubble-outline" size={48} color="#d1d5db" style={styles.emptyIcon} />
           <Text style={styles.emptyText}>No conversations yet</Text>
+          <Text style={[styles.emptyText, { fontSize: 14, marginTop: 8, color: '#9ca3af' }]}>
+            Add friends to start chatting
+          </Text>
         </View>
       ) : (
         <FlatList

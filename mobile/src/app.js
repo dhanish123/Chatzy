@@ -1,5 +1,6 @@
 import { useFonts } from 'expo-font';
 import { Navigation } from './navigation/Navigation.js';
+import { Toast } from './components/Toast.js';
 
 export const App = () => {
   const [fontsLoaded] = useFonts({
@@ -10,5 +11,10 @@ export const App = () => {
     return null;
   }
 
-  return <Navigation />;
+  return (
+    <>
+      <Navigation />
+      <Toast />
+    </>
+  );
 };

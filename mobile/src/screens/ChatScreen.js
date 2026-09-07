@@ -22,13 +22,14 @@ import { scrollToMessage, countReplies } from '../utils/replyNavigation.js';
 import { ConversationSettingsModal } from '../components/ConversationSettingsModal.js';
 import { GroupSettingsModal } from '../components/GroupSettingsModal.js';
 import { UserStatusBadge } from '../components/UserStatusBadge.js';
-import { useMessageSearch } from '../hooks/useMessageSearch.js';
 import { initializeUserPresence, fetchUserStatus } from '../services/userPresence.js';
 import { ReadReceipts } from '../components/ReadReceipts.js';
 import { MessageStatus } from '../components/MessageStatus.js';
 import { MessageForwardModal } from '../components/MessageForwardModal.js';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Modal } from 'react-native';
+import { SkeletonMessageList } from '../components/Skeleton.js';
+import { showErrorToast, showSuccessToast, showWarningToast } from '../utils/errorHandler.js';
 
 const styles = StyleSheet.create({
   container: {
@@ -240,6 +241,7 @@ export const ChatScreen = () => {
         }
       } catch (error) {
         console.error('Error loading messages:', error);
+        showErrorToast(error, 'Failed to load messages');
       } finally {
         setLoading(false);
       }
@@ -253,6 +255,7 @@ export const ChatScreen = () => {
           setBlockStatus({ ...blockStatus, blocked: response.data.isBlocked });
         } catch (error) {
           console.warn('Could not check block status:', error);
+          showWarningToast('Could not verify block status');
         }
       }
     };
@@ -381,12 +384,14 @@ export const ChatScreen = () => {
         updateMessage(editingMessage._id, { content: response.data.content, isEdited: true });
         setEditingMessage(null);
         setMessage('');
+        showSuccessToast('Message updated');
 
         if (socket) {
           socket.emit('messageUpdated', { messageId: editingMessage._id, content: response.data.content });
         }
       } catch (error) {
         console.error('Error editing message:', error);
+        showErrorToast(error, 'Failed to update message');
       }
     } else if (!message.trim()) {
       return;
@@ -401,6 +406,7 @@ export const ChatScreen = () => {
         addMessage(response.data);
         setMessage('');
         setReplyingTo(null);
+        showSuccessToast('Message sent');
 
         // Update the conversation's/group's lastMessage in the sidebar immediately
         if (!isGroup && selectedConversation) {
@@ -431,6 +437,7 @@ export const ChatScreen = () => {
         }
       } catch (error) {
         console.error('Error sending message:', error);
+        showErrorToast(error, 'Failed to send message');
       }
     }
   };
@@ -469,8 +476,10 @@ export const ChatScreen = () => {
       if (socket) {
         socket.emit('messageDeleted', { messageId });
       }
+      showSuccessToast('Message deleted');
     } catch (error) {
       console.error('Error deleting message:', error);
+      showErrorToast(error, 'Failed to delete message');
     }
   };
 
@@ -492,6 +501,7 @@ export const ChatScreen = () => {
       });
       addMessage(msgResponse.data);
       setReplyingTo(null);
+      showSuccessToast('Voice message sent');
 
       if (socket) {
         if (isGroup) {
@@ -502,6 +512,7 @@ export const ChatScreen = () => {
       }
     } catch (error) {
       console.error('Error uploading voice:', error);
+      showErrorToast(error, 'Failed to send voice message');
     } finally {
       setIsUploading(false);
     }

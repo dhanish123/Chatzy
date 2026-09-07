@@ -4,6 +4,9 @@ import { Button } from '../components/Button.js';
 import { useFriendStore } from '../stores/friendStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { userAPI, friendAPI } from '../services/api.js';
+import { SkeletonUserList } from '../components/Skeleton.js';
+import { showErrorToast, showSuccessToast } from '../utils/errorHandler.js';
+import { MaterialIcons } from '@expo/vector-icons';
 
 const styles = StyleSheet.create({
   container: {
@@ -110,6 +113,9 @@ const styles = StyleSheet.create({
   },
   friendsButtonText: {
     color: '#4b5563'
+  },
+  emptyIcon: {
+    marginBottom: 12
   }
 });
 
@@ -117,13 +123,17 @@ export const AddFriendsScreen = () => {
   const [tab, setTab] = useState('search');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [friends, setFriends] = useState([]);
+  const [loadingRequests, setLoadingRequests] = useState(true);
+  const [requestsError, setRequestsError] = useState(null);
   const { pendingRequests, sentRequests, setPendingRequests, setSentRequests } = useFriendStore();
   const { user } = useAuthStore();
 
   useEffect(() => {
     const loadRequests = async () => {
       try {
+        setRequestsError(null);
         const [pending, sent, friendsList] = await Promise.all([
           friendAPI.getPendingRequests(),
           friendAPI.getSentRequests(),
@@ -134,6 +144,10 @@ export const AddFriendsScreen = () => {
         setFriends(friendsList.data);
       } catch (error) {
         console.error('Error loading requests:', error);
+        setRequestsError(error);
+        showErrorToast(error, 'Failed to load friend requests');
+      } finally {
+        setLoadingRequests(false);
       }
     };
     loadRequests();
@@ -167,12 +181,16 @@ export const AddFriendsScreen = () => {
       return;
     }
     try {
+      setSearchLoading(true);
       const response = await userAPI.searchUsers(searchQuery);
       // Filter out current user
       const filtered = response.data.filter(u => u._id !== user?._id);
       setSearchResults(filtered);
     } catch (error) {
       console.error('Error searching:', error);
+      showErrorToast(error, 'Failed to search users');
+    } finally {
+      setSearchLoading(false);
     }
   };
 
@@ -187,9 +205,10 @@ export const AddFriendsScreen = () => {
         receiverId: searchResults.find(u => u._id === userId)
       };
       setSentRequests([...sentRequests, newSentRequest]);
-      Alert.alert('Success', 'Friend request sent');
+      showSuccessToast('Friend request sent');
     } catch (error) {
-      Alert.alert('Error', 'Failed to send request');
+      console.error('Error sending request:', error);
+      showErrorToast(error, 'Failed to send friend request');
     }
   };
 
@@ -197,8 +216,10 @@ export const AddFriendsScreen = () => {
     try {
       await friendAPI.cancelRequest(requestId);
       setSentRequests(sentRequests.filter(r => r._id !== requestId));
+      showSuccessToast('Request cancelled');
     } catch (error) {
-      Alert.alert('Error', 'Failed to cancel request');
+      console.error('Error cancelling request:', error);
+      showErrorToast(error, 'Failed to cancel request');
     }
   };
 
@@ -206,8 +227,10 @@ export const AddFriendsScreen = () => {
     try {
       await friendAPI.acceptRequest(requestId);
       setPendingRequests(pendingRequests.filter(r => r._id !== requestId));
+      showSuccessToast('Friend request accepted');
     } catch (error) {
-      Alert.alert('Error', 'Failed to accept request');
+      console.error('Error accepting request:', error);
+      showErrorToast(error, 'Failed to accept request');
     }
   };
 
@@ -215,8 +238,10 @@ export const AddFriendsScreen = () => {
     try {
       await friendAPI.rejectRequest(requestId);
       setPendingRequests(pendingRequests.filter(r => r._id !== requestId));
+      showSuccessToast('Friend request rejected');
     } catch (error) {
-      Alert.alert('Error', 'Failed to reject request');
+      console.error('Error rejecting request:', error);
+      showErrorToast(error, 'Failed to reject request');
     }
   };
 
@@ -238,126 +263,154 @@ export const AddFriendsScreen = () => {
             justifyContent: 'center'
           }}
           onPress={handleSearch}
+          disabled={searchLoading}
         >
           <Text style={{ color: '#ffffff', fontWeight: '600' }}>Search</Text>
         </Pressable>
       </View>
 
-      <FlatList
-        data={searchResults}
-        renderItem={({ item }) => {
-          const buttonState = getButtonState(item._id);
-          return (
-            <View style={styles.item}>
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.username}</Text>
-                <Text style={styles.itemEmail}>{item.email}</Text>
+      {searchLoading ? (
+        <SkeletonUserList count={3} />
+      ) : (
+        <FlatList
+          data={searchResults}
+          renderItem={({ item }) => {
+            const buttonState = getButtonState(item._id);
+            return (
+              <View style={styles.item}>
+                <View style={styles.itemInfo}>
+                  <Text style={styles.itemName}>{item.username}</Text>
+                  <Text style={styles.itemEmail}>{item.email}</Text>
+                </View>
+                {buttonState.type === 'friends' ? (
+                  <Pressable
+                    style={[styles.statusButton, styles.friendsButton]}
+                    disabled={true}
+                  >
+                    <Text style={[styles.statusButtonText, styles.friendsButtonText]}>
+                      {buttonState.label}
+                    </Text>
+                  </Pressable>
+                ) : buttonState.type === 'pending' ? (
+                  <Pressable
+                    style={[styles.statusButton, styles.friendsButton]}
+                    disabled={true}
+                  >
+                    <Text style={[styles.statusButtonText, styles.friendsButtonText]}>
+                      {buttonState.label}
+                    </Text>
+                  </Pressable>
+                ) : buttonState.type === 'sent' ? (
+                  <Button
+                    title={buttonState.label}
+                    variant="secondary"
+                    onPress={() => handleCancelRequest(buttonState.requestId)}
+                  />
+                ) : (
+                  <Button
+                    title={buttonState.label}
+                    onPress={() => handleSendRequest(item._id)}
+                  />
+                )}
               </View>
-              {buttonState.type === 'friends' ? (
-                <Pressable
-                  style={[styles.statusButton, styles.friendsButton]}
-                  disabled={true}
-                >
-                  <Text style={[styles.statusButtonText, styles.friendsButtonText]}>
-                    {buttonState.label}
-                  </Text>
-                </Pressable>
-              ) : buttonState.type === 'pending' ? (
-                <Pressable
-                  style={[styles.statusButton, styles.friendsButton]}
-                  disabled={true}
-                >
-                  <Text style={[styles.statusButtonText, styles.friendsButtonText]}>
-                    {buttonState.label}
-                  </Text>
-                </Pressable>
-              ) : buttonState.type === 'sent' ? (
-                <Button
-                  title={buttonState.label}
-                  variant="secondary"
-                  onPress={() => handleCancelRequest(buttonState.requestId)}
-                />
-              ) : (
-                <Button
-                  title={buttonState.label}
-                  onPress={() => handleSendRequest(item._id)}
-                />
-              )}
-            </View>
-          );
-        }}
-        keyExtractor={item => item._id}
-        ListEmptyComponent={
-          searchQuery.length >= 2 ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>No users found</Text>
-            </View>
-          ) : null
-        }
-        style={styles.list}
-      />
+            );
+          }}
+          keyExtractor={item => item._id}
+          ListEmptyComponent={
+            searchQuery.length >= 2 ? (
+              <View style={styles.empty}>
+                <MaterialIcons name="person-off" size={48} color="#d1d5db" style={styles.emptyIcon} />
+                <Text style={styles.emptyText}>No users found</Text>
+              </View>
+            ) : searchQuery.length > 0 && searchQuery.length < 2 ? (
+              <View style={styles.empty}>
+                <Text style={styles.emptyText}>Type at least 2 characters to search</Text>
+              </View>
+            ) : null
+          }
+          style={styles.list}
+        />
+      )}
     </View>
   );
 
   const renderPendingTab = () => (
     <View style={styles.content}>
-      <FlatList
-        data={pendingRequests}
-        renderItem={({ item }) => (
-          <View style={styles.item}>
-            <View style={styles.itemInfo}>
-              <Text style={styles.itemName}>{item.senderId.username}</Text>
-              <Text style={styles.itemEmail}>{item.senderId.email}</Text>
+      {loadingRequests ? (
+        <SkeletonUserList count={3} />
+      ) : requestsError ? (
+        <View style={styles.empty}>
+          <MaterialIcons name="error-outline" size={48} color="#dc2626" style={styles.emptyIcon} />
+          <Text style={[styles.emptyText, { color: '#991b1b' }]}>Failed to load pending requests</Text>
+        </View>
+      ) : pendingRequests.length === 0 ? (
+        <View style={styles.empty}>
+          <MaterialIcons name="mail-outline" size={48} color="#d1d5db" style={styles.emptyIcon} />
+          <Text style={styles.emptyText}>You have no pending requests</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={pendingRequests}
+          renderItem={({ item }) => (
+            <View style={styles.item}>
+              <View style={styles.itemInfo}>
+                <Text style={styles.itemName}>{item.senderId.username}</Text>
+                <Text style={styles.itemEmail}>{item.senderId.email}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <Button
+                  title="Accept"
+                  onPress={() => handleAcceptRequest(item._id)}
+                />
+                <Button
+                  title="Reject"
+                  variant="secondary"
+                  onPress={() => handleRejectRequest(item._id)}
+                />
+              </View>
             </View>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Button
-                title="Accept"
-                onPress={() => handleAcceptRequest(item._id)}
-              />
-              <Button
-                title="Reject"
-                variant="secondary"
-                onPress={() => handleRejectRequest(item._id)}
-              />
-            </View>
-          </View>
-        )}
-        keyExtractor={item => item._id}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>No pending requests</Text>
-          </View>
-        }
-        style={styles.list}
-      />
+          )}
+          keyExtractor={item => item._id}
+          style={styles.list}
+        />
+      )}
     </View>
   );
 
   const renderSentTab = () => (
     <View style={styles.content}>
-      <FlatList
-        data={sentRequests}
-        renderItem={({ item }) => (
-          <View style={styles.item}>
-            <View style={styles.itemInfo}>
-              <Text style={styles.itemName}>{item.receiverId.username}</Text>
-              <Text style={styles.itemEmail}>{item.receiverId.email}</Text>
+      {loadingRequests ? (
+        <SkeletonUserList count={3} />
+      ) : requestsError ? (
+        <View style={styles.empty}>
+          <MaterialIcons name="error-outline" size={48} color="#dc2626" style={styles.emptyIcon} />
+          <Text style={[styles.emptyText, { color: '#991b1b' }]}>Failed to load sent requests</Text>
+        </View>
+      ) : sentRequests.length === 0 ? (
+        <View style={styles.empty}>
+          <MaterialIcons name="send" size={48} color="#d1d5db" style={styles.emptyIcon} />
+          <Text style={styles.emptyText}>You have no outgoing requests</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={sentRequests}
+          renderItem={({ item }) => (
+            <View style={styles.item}>
+              <View style={styles.itemInfo}>
+                <Text style={styles.itemName}>{item.receiverId.username}</Text>
+                <Text style={styles.itemEmail}>{item.receiverId.email}</Text>
+              </View>
+              <Button
+                title="Cancel"
+                variant="secondary"
+                onPress={() => handleCancelRequest(item._id)}
+              />
             </View>
-            <Button
-              title="Cancel"
-              variant="secondary"
-              onPress={() => handleCancelRequest(item._id)}
-            />
-          </View>
-        )}
-        keyExtractor={item => item._id}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>No sent requests</Text>
-          </View>
-        }
-        style={styles.list}
-      />
+          )}
+          keyExtractor={item => item._id}
+          style={styles.list}
+        />
+      )}
     </View>
   );
 

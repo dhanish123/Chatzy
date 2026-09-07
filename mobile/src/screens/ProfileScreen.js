@@ -9,6 +9,7 @@ import { disconnectSocket } from '../services/socket.js';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import { MaterialIcons } from '@expo/vector-icons';
+import { showErrorToast, showSuccessToast } from '../utils/errorHandler.js';
 
 const styles = StyleSheet.create({
   container: {
@@ -146,14 +147,18 @@ export const ProfileScreen = () => {
   const navigation = useNavigation();
 
   const handleUpdateProfile = async () => {
+    if (!username.trim()) {
+      showErrorToast(null, 'Username cannot be empty');
+      return;
+    }
     try {
       setLoading(true);
       const response = await userAPI.updateProfile({ username });
       setUser(response.data);
-      setMessage('Profile updated');
-      setTimeout(() => setMessage(''), 3000);
+      showSuccessToast('Profile updated successfully');
     } catch (error) {
-      Alert.alert('Error', 'Failed to update profile');
+      console.error('Error updating profile:', error);
+      showErrorToast(error, 'Failed to update profile');
     } finally {
       setLoading(false);
     }
@@ -177,10 +182,7 @@ export const ProfileScreen = () => {
           
           const limit = 10 * 1024 * 1024; // 10 MB for images
           if (fileSize > limit) {
-            Alert.alert(
-              'File Too Large',
-              `Maximum image size: 10 MB\n\nYour file: ${(fileSize / 1024 / 1024).toFixed(2)} MB`
-            );
+            showErrorToast(null, `Image too large. Maximum: 10 MB, Your file: ${(fileSize / 1024 / 1024).toFixed(2)} MB`);
             return;
           }
         } catch (err) {
@@ -196,12 +198,11 @@ export const ProfileScreen = () => {
 
         // Update user with new profile image
         setUser(response.data);
-        setMessage('Profile image updated');
-        setTimeout(() => setMessage(''), 3000);
+        showSuccessToast('Profile image updated successfully');
       }
     } catch (error) {
       console.error('Error uploading image:', error);
-      Alert.alert('Error', 'Failed to upload image');
+      showErrorToast(error, 'Failed to upload image');
     } finally {
       setLoading(false);
     }
@@ -237,12 +238,6 @@ export const ProfileScreen = () => {
       </View>
 
       <ScrollView style={styles.content}>
-        {message && (
-          <View style={{ backgroundColor: '#dbeafe', padding: 12, borderRadius: 8, marginBottom: 16 }}>
-            <Text style={{ color: '#2563eb' }}>{message}</Text>
-          </View>
-        )}
-
         {/* Profile Image Section */}
         <View style={styles.profileImageSection}>
           <View style={styles.profileImageContainer}>
