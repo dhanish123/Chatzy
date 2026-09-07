@@ -17,7 +17,6 @@ export const Chat = () => {
   const { conversations, selectedConversation, setConversations, setSelectedConversation } = useChatStore();
   const { groups, selectedGroup, setGroups, setSelectedGroup } = useGroupStore();
   const { friends } = useFriendStore();
-  const [loading, setLoading] = useState(true);
   const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
@@ -33,8 +32,6 @@ export const Chat = () => {
         setGroups(groupRes.data);
       } catch (error) {
         console.error('Error loading data:', error);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -78,25 +75,9 @@ export const Chat = () => {
     setShowChat(true);
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-screen overflow-hidden bg-white">
-        {/* Show sidebar on mobile and desktop during loading */}
-        <div className="w-full md:w-80 bg-white border-r border-gray-200 flex-col h-full overflow-hidden">
-          <Sidebar onSelectConversation={handleSelectConversation} onSelectGroup={handleSelectGroup} />
-        </div>
-
-        {/* Show loading only on desktop when no chat selected */}
-        <div className="hidden md:flex md:flex-1 items-center justify-center bg-gray-50">
-          <Loader size="lg" />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex h-screen overflow-hidden bg-white">
-      {/* Sidebar - hidden on mobile when chat is shown */}
+      {/* Sidebar - shown by default on mobile, always shown on desktop */}
       <div className={`${showChat ? 'hidden' : 'w-full'} md:flex md:w-80 bg-white border-r border-gray-200 flex-col h-full overflow-hidden`}>
         <Sidebar onSelectConversation={handleSelectConversation} onSelectGroup={handleSelectGroup} />
       </div>
