@@ -19,6 +19,7 @@ const app = express();
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   process.env.MOBILE_URL,
+  'https://chatzy-sepia.vercel.app',
   'http://localhost:5173',
   'http://localhost:3000'
 ];
