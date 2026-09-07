@@ -81,10 +81,13 @@ export const Chat = () => {
   if (loading) {
     return (
       <div className="flex h-screen overflow-hidden bg-white">
-        <div className="hidden md:flex md:w-80 bg-white border-r border-gray-200">
-          <Sidebar />
+        {/* Show sidebar on mobile and desktop during loading */}
+        <div className="w-full md:w-80 bg-white border-r border-gray-200 flex-col h-full overflow-hidden">
+          <Sidebar onSelectConversation={handleSelectConversation} onSelectGroup={handleSelectGroup} />
         </div>
-        <div className="flex-1 flex items-center justify-center bg-gray-50">
+
+        {/* Show loading only on desktop when no chat selected */}
+        <div className="hidden md:flex md:flex-1 items-center justify-center bg-gray-50">
           <Loader size="lg" />
         </div>
       </div>
