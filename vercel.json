@@ -1,18 +1,5 @@
 {
-  "builds": [
-    {
-      "src": "web/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "buildCommand": "cd web && npm install && npm run build",
-        "outputDirectory": "web/dist"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "web/dist/$1"
-    }
-  ]
+  "buildCommand": "cd web && npm install --legacy-peer-deps && npm run build",
+  "outputDirectory": "web/dist",
+  "installCommand": "npm install --legacy-peer-deps"
 }
