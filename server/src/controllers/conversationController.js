@@ -188,3 +188,111 @@ export const deleteConversation = async (req, res, next) => {
     next(error);
   }
 };
+
+export const archiveConversation = async (req, res, next) => {
+  try {
+    const { conversationId } = req.params;
+
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ message: 'Conversation not found' });
+    }
+
+    const participant = conversation.participants.find(
+      p => p.userId.toString() === req.userId.toString()
+    );
+
+    if (!participant) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    participant.isArchived = true;
+    participant.archivedAt = new Date();
+    await conversation.save();
+
+    res.json(conversation);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const unarchiveConversation = async (req, res, next) => {
+  try {
+    const { conversationId } = req.params;
+
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ message: 'Conversation not found' });
+    }
+
+    const participant = conversation.participants.find(
+      p => p.userId.toString() === req.userId.toString()
+    );
+
+    if (!participant) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    participant.isArchived = false;
+    participant.archivedAt = null;
+    await conversation.save();
+
+    res.json(conversation);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const muteConversation = async (req, res, next) => {
+  try {
+    const { conversationId } = req.params;
+    const { isMuted } = req.body;
+
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ message: 'Conversation not found' });
+    }
+
+    const participant = conversation.participants.find(
+      p => p.userId.toString() === req.userId.toString()
+    );
+
+    if (!participant) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    participant.isMuted = isMuted ?? !participant.isMuted;
+    await conversation.save();
+
+    res.json(conversation);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const pinConversation = async (req, res, next) => {
+  try {
+    const { conversationId } = req.params;
+    const { isPinned } = req.body;
+
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ message: 'Conversation not found' });
+    }
+
+    const participant = conversation.participants.find(
+      p => p.userId.toString() === req.userId.toString()
+    );
+
+    if (!participant) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    participant.isPinned = isPinned ?? !participant.isPinned;
+    await conversation.save();
+
+    res.json(conversation);
+  } catch (error) {
+    next(error);
+  }
+};

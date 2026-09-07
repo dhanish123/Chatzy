@@ -13,6 +13,22 @@ const conversationSchema = new mongoose.Schema({
     clearedAt: {
       type: Date,
       default: null
+    },
+    isArchived: {
+      type: Boolean,
+      default: false
+    },
+    archivedAt: {
+      type: Date,
+      default: null
+    },
+    isMuted: {
+      type: Boolean,
+      default: false
+    },
+    isPinned: {
+      type: Boolean,
+      default: false
     }
   }],
   lastMessage: {

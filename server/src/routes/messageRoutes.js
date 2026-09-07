@@ -4,7 +4,9 @@ import {
   createMessage,
   editMessage,
   deleteMessage,
-  markMessageAsRead
+  markMessageAsRead,
+  addReaction,
+  removeReaction
 } from '../controllers/messageController.js';
 import { authMiddleware } from '../middleware/auth.js';
 
@@ -15,5 +17,7 @@ router.post('/', authMiddleware, createMessage);
 router.put('/:messageId', authMiddleware, editMessage);
 router.delete('/:messageId', authMiddleware, deleteMessage);
 router.post('/:messageId/read', authMiddleware, markMessageAsRead);
+router.post('/:messageId/reactions', authMiddleware, addReaction);
+router.delete('/:messageId/reactions', authMiddleware, removeReaction);
 
 export default router;

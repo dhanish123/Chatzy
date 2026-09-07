@@ -82,7 +82,12 @@ export const conversationAPI = {
   getAll: () => api.get('/conversations'),
   get: (conversationId) => api.get(`/conversations/${conversationId}`),
   markAsRead: (conversationId) => api.put(`/conversations/${conversationId}/read`),
-  clear: (conversationId) => api.delete(`/conversations/${conversationId}/clear`)
+  clear: (conversationId) => api.delete(`/conversations/${conversationId}/clear`),
+  delete: (conversationId) => api.delete(`/conversations/${conversationId}`),
+  archive: (conversationId) => api.post(`/conversations/${conversationId}/archive`),
+  unarchive: (conversationId) => api.post(`/conversations/${conversationId}/unarchive`),
+  mute: (conversationId, isMuted) => api.put(`/conversations/${conversationId}/mute`, { isMuted }),
+  pin: (conversationId, isPinned) => api.put(`/conversations/${conversationId}/pin`, { isPinned })
 };
 
 export const messageAPI = {
@@ -91,7 +96,9 @@ export const messageAPI = {
   send: (data) => api.post('/messages', data),
   edit: (messageId, content) => api.put(`/messages/${messageId}`, { content }),
   delete: (messageId) => api.delete(`/messages/${messageId}`),
-  markAsRead: (messageId) => api.post(`/messages/${messageId}/read`)
+  markAsRead: (messageId) => api.post(`/messages/${messageId}/read`),
+  addReaction: (messageId, emoji) => api.post(`/messages/${messageId}/reactions`, { emoji }),
+  removeReaction: (messageId, emoji) => api.delete(`/messages/${messageId}/reactions`, { data: { emoji } })
 };
 
 export const groupAPI = {

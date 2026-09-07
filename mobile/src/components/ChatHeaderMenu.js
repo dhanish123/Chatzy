@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
   }
 });
 
-export const ChatHeaderMenu = ({ conversationId, otherUserId, onChatCleared, onUserBlocked }) => {
+export const ChatHeaderMenu = ({ conversationId, otherUserId, onChatCleared, onUserBlocked, onSettingsPress }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [modalState, setModalState] = useState({
@@ -57,6 +57,11 @@ export const ChatHeaderMenu = ({ conversationId, otherUserId, onChatCleared, onU
     isDangerous: false
   });
   const socket = getSocket();
+
+  const handleSettings = () => {
+    setIsOpen(false);
+    onSettingsPress?.();
+  };
 
   const handleClearChat = () => {
     setModalState({
@@ -115,6 +120,13 @@ export const ChatHeaderMenu = ({ conversationId, otherUserId, onChatCleared, onU
 
         {isOpen && (
           <View style={styles.menuOverlay}>
+            <Pressable
+              style={[styles.menuItem]}
+              onPress={handleSettings}
+              disabled={loading}
+            >
+              <Text style={styles.menuItemText}>Settings</Text>
+            </Pressable>
             <Pressable
               style={[styles.menuItem]}
               onPress={handleClearChat}

@@ -12,6 +12,14 @@ import { MediaPreviewModal } from '../components/MediaPreviewModal.js';
 import { ChatHeaderMenu } from '../components/ChatHeaderMenu.js';
 import { GroupHeaderMenu } from '../components/GroupHeaderMenu.js';
 import { TypingIndicator } from '../components/TypingIndicator.js';
+import { MessageSearchBar } from '../components/MessageSearchBar.js';
+import { MessageSearchResults } from '../components/MessageSearchResults.js';
+import { EmojiReactions } from '../components/EmojiReactions.js';
+import { useMessageSearch } from '../hooks/useMessageSearch.js';
+import { ReplyQuotePreview } from '../components/ReplyQuotePreview.js';
+import { ReplyThread } from '../components/ReplyThread.js';
+import { scrollToMessage, countReplies } from '../utils/replyNavigation.js';
+import { ConversationSettingsModal } from '../components/ConversationSettingsModal.js';
 import { MaterialIcons } from '@expo/vector-icons';
 
 const styles = StyleSheet.create({
@@ -156,6 +164,12 @@ export const ChatScreen = () => {
   const [previewMedia, setPreviewMedia] = useState(null);
   const [previewFileSize, setPreviewFileSize] = useState(null);
   const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
+  
+  // Message search states
+  const messageSearch = useMessageSearch(messages);
+  const [reactionPickerMessageId, setReactionPickerMessageId] = useState(null);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  
   const flatListRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const socket = getSocket();
@@ -582,16 +596,21 @@ export const ChatScreen = () => {
         }}
       >
         {item.replyTo && (
-          <View style={{ marginBottom: 4, paddingHorizontal: 8 }}>
-            <View style={{ backgroundColor: isOwn ? '#1e40af' : '#d1d5db', borderLeftWidth: 2, borderLeftColor: isOwn ? '#3b82f6' : '#6b7280', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
-              <Text style={{ fontSize: 10, fontWeight: '600', color: isOwn ? '#dbeafe' : '#6b7280' }}>Reply to</Text>
-              <Text style={{ fontSize: 11, color: isOwn ? '#93c5fd' : '#4b5563', marginTop: 2 }} numberOfLines={1}>{item.replyTo.content}</Text>
-            </View>
-          </View>
+          <ReplyThread 
+            message={item.replyTo}
+            replyCount={countReplies(item.replyTo._id, messages)}
+            onPress={() => {
+              scrollToMessage(flatListRef, messages, item.replyTo._id);
+            }}
+          />
         )}
 
         <View style={styles.messageBubble}>
-          <View style={[styles.bubbleContent, isOwn ? styles.ownBubble : styles.otherBubble]}>
+          <View style={[
+            styles.bubbleContent, 
+            isOwn ? styles.ownBubble : styles.otherBubble,
+            messageSearch.highlightedMessageId === item._id && { borderWidth: 2, borderColor: '#fbbf24' }
+          ]}>
             {item.isDeleted ? (
               <Text style={isOwn ? styles.ownText : styles.otherText}>Message deleted</Text>
             ) : item.mediaType === 'audio' ? (
@@ -637,7 +656,53 @@ export const ChatScreen = () => {
               {canEdit && <Pressable onPress={() => handleEditMessage(item)}><Text style={{ fontSize: 11, color: '#3b82f6' }}>Edit</Text></Pressable>}
               {canDelete && <Pressable onPress={() => handleDeleteMessage(item._id)}><Text style={{ fontSize: 11, color: '#ef4444' }}>Delete</Text></Pressable>}
               <Pressable onPress={() => setReplyingTo(item)}><Text style={{ fontSize: 11, color: '#6b7280' }}>Reply</Text></Pressable>
+              <Pressable onPress={() => setReactionPickerMessageId(reactionPickerMessageId === item._id ? null : item._id)}>
+                <Text style={{ fontSize: 11, color: '#6b7280' }}>React</Text>
+              </Pressable>
             </View>
+          )}
+
+          {/* Emoji Reactions */}
+          {item.reactions && item.reactions.length > 0 && (
+            <EmojiReactions
+              reactions={item.reactions}
+              messageId={item._id}
+              currentUserId={user?._id}
+              showPicker={reactionPickerMessageId === item._id}
+              onPickerToggle={() => setReactionPickerMessageId(reactionPickerMessageId === item._id ? null : item._id)}
+              onReactionAdded={(emoji) => {
+                const updatedMessage = {
+                  ...item,
+                  reactions: [...(item.reactions || []), { userId: { _id: user?._id }, emoji }]
+                };
+                updateMessage(item._id, updatedMessage);
+              }}
+              onReactionRemoved={(emoji) => {
+                const updatedMessage = {
+                  ...item,
+                  reactions: (item.reactions || []).filter(r => !(r.userId._id === user?._id && r.emoji === emoji))
+                };
+                updateMessage(item._id, updatedMessage);
+              }}
+            />
+          )}
+
+          {/* Show reaction picker if no reactions yet */}
+          {(!item.reactions || item.reactions.length === 0) && reactionPickerMessageId === item._id && (
+            <EmojiReactions
+              reactions={[]}
+              messageId={item._id}
+              currentUserId={user?._id}
+              showPicker={true}
+              onPickerToggle={() => setReactionPickerMessageId(null)}
+              onReactionAdded={(emoji) => {
+                const updatedMessage = {
+                  ...item,
+                  reactions: [{ userId: { _id: user?._id }, emoji }]
+                };
+                updateMessage(item._id, updatedMessage);
+              }}
+            />
           )}
         </View>
       </Pressable>
@@ -689,27 +754,63 @@ export const ChatScreen = () => {
           </View>
         </View>
         {!isGroup && otherUser && (
-          <ChatHeaderMenu
-            conversationId={conversationId}
-            otherUserId={otherUser._id}
-            onChatCleared={() => setMessages([])}
-            onUserBlocked={() => setBlockStatus({ ...blockStatus, blocked: true })}
-          />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Pressable
+              onPress={() => messageSearch.toggleSearchMode()}
+              style={{ padding: 8 }}
+            >
+              <MaterialIcons name="search" size={24} color={messageSearch.isSearching ? '#2563eb' : '#6b7280'} />
+            </Pressable>
+            <ChatHeaderMenu
+              conversationId={conversationId}
+              otherUserId={otherUser._id}
+              onChatCleared={() => setMessages([])}
+              onUserBlocked={() => setBlockStatus({ ...blockStatus, blocked: true })}
+              onSettingsPress={() => setShowSettingsModal(true)}
+            />
+          </View>
         )}
         {isGroup && (
-          <GroupHeaderMenu
-            groupId={conversationId}
-            group={selectedGroup}
-            currentUserId={user?._id}
-            onGroupLeft={() => {
-              setSelectedGroup(null);
-            }}
-            onGroupUpdated={(updatedGroup) => {
-              setSelectedGroup(updatedGroup);
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Pressable
+              onPress={() => messageSearch.toggleSearchMode()}
+              style={{ padding: 8 }}
+            >
+              <MaterialIcons name="search" size={24} color={messageSearch.isSearching ? '#2563eb' : '#6b7280'} />
+            </Pressable>
+            <GroupHeaderMenu
+              groupId={conversationId}
+              group={selectedGroup}
+              currentUserId={user?._id}
+              onGroupLeft={() => {
+                setSelectedGroup(null);
+              }}
+              onGroupUpdated={(updatedGroup) => {
+                setSelectedGroup(updatedGroup);
+              }}
+            />
+      </View>
+
+      {messageSearch.isSearching && (
+        <>
+          <MessageSearchBar
+            onSearch={messageSearch.performSearch}
+            onClose={() => messageSearch.clearSearch()}
+            resultCount={messageSearch.searchResults.length}
+          />
+          <MessageSearchResults
+            results={messageSearch.searchResults}
+            query={messageSearch.searchQuery}
+            onSelectResult={(msg) => {
+              messageSearch.setHighlightedMessageId(msg._id);
+              // Scroll to message
+              setTimeout(() => {
+                flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+              }, 100);
             }}
           />
-        )}
-      </View>
+        </>
+      )}
 
       <FlatList
         ref={flatListRef}
@@ -771,15 +872,11 @@ export const ChatScreen = () => {
             )}
 
             {replyingTo && (
-              <View style={{ backgroundColor: '#f3f4f6', borderLeftWidth: 3, borderLeftColor: '#6b7280', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 4, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 11, fontWeight: '600', color: '#6b7280' }}>Replying to</Text>
-                  <Text style={{ fontSize: 12, color: '#374151', marginTop: 2 }} numberOfLines={1}>{replyingTo.content}</Text>
-                </View>
-                <Pressable onPress={() => setReplyingTo(null)}>
-                  <MaterialIcons name="close" size={18} color="#6b7280" />
-                </Pressable>
-              </View>
+              <ReplyQuotePreview 
+                message={replyingTo}
+                onClose={() => setReplyingTo(null)}
+                isOwnReply={true}
+              />
             )}
 
             <View style={styles.controlsRow}>

@@ -30,6 +30,18 @@ const groupSchema = new mongoose.Schema({
     unreadCount: {
       type: Number,
       default: 0
+    },
+    isArchived: {
+      type: Boolean,
+      default: false
+    },
+    archivedAt: {
+      type: Date,
+      default: null
+    },
+    isMuted: {
+      type: Boolean,
+      default: false
     }
   }],
   lastMessage: {

@@ -238,3 +238,65 @@ export const markMessageAsRead = async (req, res, next) => {
     next(error);
   }
 };
+
+export const addReaction = async (req, res, next) => {
+  try {
+    const { messageId } = req.params;
+    const { emoji } = req.body;
+
+    if (!emoji) {
+      return res.status(422).json({ message: 'Emoji is required' });
+    }
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ message: 'Message not found' });
+    }
+
+    // Check if user already reacted with this emoji
+    const existingReaction = message.reactions.find(
+      r => r.userId.toString() === req.userId.toString() && r.emoji === emoji
+    );
+
+    if (!existingReaction) {
+      message.reactions.push({
+        userId: req.userId,
+        emoji,
+        createdAt: new Date()
+      });
+      await message.save();
+    }
+
+    await message.populate('reactions.userId', '-password');
+    res.json(message);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const removeReaction = async (req, res, next) => {
+  try {
+    const { messageId } = req.params;
+    const { emoji } = req.body;
+
+    if (!emoji) {
+      return res.status(422).json({ message: 'Emoji is required' });
+    }
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ message: 'Message not found' });
+    }
+
+    // Remove reaction
+    message.reactions = message.reactions.filter(
+      r => !(r.userId.toString() === req.userId.toString() && r.emoji === emoji)
+    );
+
+    await message.save();
+    await message.populate('reactions.userId', '-password');
+    res.json(message);
+  } catch (error) {
+    next(error);
+  }
+};

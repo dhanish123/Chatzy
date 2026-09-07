@@ -64,6 +64,17 @@ const messageSchema = new mongoose.Schema({
     userId: mongoose.Schema.Types.ObjectId,
     readAt: Date
   }],
+  reactions: [{
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    emoji: String,
+    createdAt: {
+      type: Date,
+      default: new Date()
+    }
+  }],
   createdAt: {
     type: Date,
     default: new Date()
