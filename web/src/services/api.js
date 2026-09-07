@@ -1,7 +1,9 @@
 import axios from 'axios';
 import { useAuthStore } from '../stores/authStore.js';
 
-const API_URL = import.meta.env.VITE_API_URL;
+// Use environment variable, fallback to Render backend if not set
+const API_URL = import.meta.env.VITE_API_URL || 'https://chatzy22.onrender.com/api';
+console.log('API_URL:', API_URL);
 
 // Helper to convert relative URLs to absolute
 export const getImageUrl = (url) => {
