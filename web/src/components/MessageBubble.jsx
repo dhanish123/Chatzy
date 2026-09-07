@@ -1,4 +1,5 @@
 import { BsCheck2, BsCheck2All } from 'react-icons/bs';
+import { MdReply, MdEdit, MdDelete } from 'react-icons/md';
 import { Avatar } from './Avatar.jsx';
 import { AudioMessage } from './AudioMessage.jsx';
 import { useState, useRef, useEffect } from 'react';
@@ -172,29 +173,32 @@ export const MessageBubble = ({
 
         {/* Action buttons - always visible on mobile, show on hover on desktop */}
         {(canEdit || canDelete || canReply) && (
-          <div className={`flex gap-2 mt-2 text-xs flex-wrap ${showActions || true ? 'visible' : 'hidden md:group-hover:flex'}`}>
+          <div className={`flex gap-2 mt-2 flex-wrap`}>
             {canReply && onReply && (
               <button 
                 onClick={() => onReply?.(message)} 
-                className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs md:text-sm"
+                className="p-2 hover:bg-gray-100 text-gray-600 hover:text-gray-800 rounded transition flex items-center gap-1"
+                title="Reply"
               >
-                ↩️ Reply
+                <MdReply size={18} />
               </button>
             )}
             {canEdit && (
               <button 
                 onClick={() => onEdit?.(message)} 
-                className="px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-xs md:text-sm"
+                className="p-2 hover:bg-blue-100 text-blue-600 hover:text-blue-800 rounded transition flex items-center gap-1"
+                title="Edit"
               >
-                ✏️ Edit
+                <MdEdit size={18} />
               </button>
             )}
             {canDelete && (
               <button 
                 onClick={() => onDelete?.(message._id)} 
-                className="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-xs md:text-sm"
+                className="p-2 hover:bg-red-100 text-red-600 hover:text-red-800 rounded transition flex items-center gap-1"
+                title="Delete"
               >
-                🗑️ Delete
+                <MdDelete size={18} />
               </button>
             )}
           </div>
