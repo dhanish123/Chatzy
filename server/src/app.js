@@ -83,7 +83,7 @@ app.use('/api/user-state', userStateRoutes);
 
 // Health check endpoint
 app.get('/api', (req, res) => {
-  res.json({ message: 'API is running', status: 'ok' });
+  res.json({ message: 'API is running', status: 'ok', timestamp: new Date().toISOString() });
 });
 
 app.use(errorHandler);
