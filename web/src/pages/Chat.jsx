@@ -8,7 +8,6 @@ import { userStateAPI } from '../services/userStateAPI.js';
 import { getSocket, joinConversation, leaveConversation, initializeSocket, joinUserRoom } from '../services/socket.js';
 import { Sidebar } from '../components/Sidebar.jsx';
 import { Loader } from '../components/Loader.jsx';
-import { RiArrowLeftSLine } from 'react-icons/ri';
 
 // Lazy load ChatWindow for faster initial render
 const ChatWindow = lazy(() => import('../components/ChatWindow.jsx').then(m => ({ default: m.ChatWindow })));
@@ -101,23 +100,15 @@ export const Chat = () => {
 
       {/* Chat Window - full screen on mobile, flex-1 on desktop */}
       {selectedConversation || selectedGroup ? (
-        <div className="w-full md:flex-1 flex flex-col h-full relative">
-          {/* Back button for mobile */}
-          <div className="md:hidden absolute top-4 left-4 z-10">
-            <button
-              onClick={() => {
+        <div className="w-full md:flex-1 flex flex-col h-full">
+          <Suspense fallback={<div className="flex-1 flex items-center justify-center bg-gray-50"><Loader size="lg" /></div>}>
+            <ChatWindow 
+              onBackClick={() => {
                 setShowChat(false);
                 setSelectedConversation(null);
                 setSelectedGroup(null);
               }}
-              className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-700"
-              title="Back to conversations"
-            >
-              <RiArrowLeftSLine size={24} />
-            </button>
-          </div>
-          <Suspense fallback={<div className="flex-1 flex items-center justify-center bg-gray-50"><Loader size="lg" /></div>}>
-            <ChatWindow />
+            />
           </Suspense>
         </div>
       ) : (

@@ -14,7 +14,7 @@ import { TypingIndicator } from './TypingIndicator.jsx';
 import { Loader } from './Loader.jsx';
 import { Avatar } from './Avatar.jsx';
 
-export const ChatWindow = () => {
+export const ChatWindow = ({ onBackClick }) => {
   const { user } = useAuthStore();
   const { selectedConversation, messages, setMessages, setConversations, conversations, addMessage, updateMessage } = useChatStore();
   const { selectedGroup, setSelectedGroup, groups, setGroups } = useGroupStore();
@@ -361,6 +361,18 @@ export const ChatWindow = () => {
       {/* Chat Header */}
       <div className="bg-white border-b border-gray-200 p-3 md:p-4 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+          {/* Back button for mobile */}
+          {onBackClick && (
+            <button
+              onClick={onBackClick}
+              className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition text-gray-700 flex-shrink-0"
+              title="Back to conversations"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
           {isGroup ? (
             <>
               <Avatar 
