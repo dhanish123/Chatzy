@@ -20,7 +20,15 @@ import { ReplyQuotePreview } from '../components/ReplyQuotePreview.js';
 import { ReplyThread } from '../components/ReplyThread.js';
 import { scrollToMessage, countReplies } from '../utils/replyNavigation.js';
 import { ConversationSettingsModal } from '../components/ConversationSettingsModal.js';
+import { GroupSettingsModal } from '../components/GroupSettingsModal.js';
+import { UserStatusBadge } from '../components/UserStatusBadge.js';
+import { useMessageSearch } from '../hooks/useMessageSearch.js';
+import { initializeUserPresence, fetchUserStatus } from '../services/userPresence.js';
+import { ReadReceipts } from '../components/ReadReceipts.js';
+import { MessageStatus } from '../components/MessageStatus.js';
+import { MessageForwardModal } from '../components/MessageForwardModal.js';
 import { MaterialIcons } from '@expo/vector-icons';
+import { Modal } from 'react-native';
 
 const styles = StyleSheet.create({
   container: {
@@ -169,6 +177,10 @@ export const ChatScreen = () => {
   const messageSearch = useMessageSearch(messages);
   const [reactionPickerMessageId, setReactionPickerMessageId] = useState(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [otherUserOnlineStatus, setOtherUserOnlineStatus] = useState(false);
+  const [otherUserLastSeen, setOtherUserLastSeen] = useState(null);
+  const [showForwardModal, setShowForwardModal] = useState(false);
+  const [messageToForward, setMessageToForward] = useState(null);
   
   const flatListRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -183,6 +195,21 @@ export const ChatScreen = () => {
   useEffect(() => {
     setImageTimestamp(Date.now());
   }, [otherUser?.profileImage]);
+
+  // Initialize user presence and fetch status
+  useEffect(() => {
+    if (socket && !isGroup) {
+      initializeUserPresence(socket);
+      if (otherUser?._id) {
+        fetchUserStatus(otherUser._id).then(status => {
+          if (status) {
+            setOtherUserOnlineStatus(status.isOnline);
+            setOtherUserLastSeen(status.lastSeen);
+          }
+        });
+      }
+    }
+  }, [socket, otherUser?._id, isGroup]);
 
   useEffect(() => {
     if (!conversationId) return;
@@ -588,6 +615,10 @@ export const ChatScreen = () => {
                 onPress: () => setReplyingTo(item)
               },
               {
+                text: 'Forward',
+                onPress: () => { setMessageToForward(item); setShowForwardModal(true); }
+              },
+              {
                 text: 'Cancel',
                 style: 'cancel'
               }
@@ -643,19 +674,25 @@ export const ChatScreen = () => {
               {new Date(item.createdAt).toLocaleTimeString()}
             </Text>
             {isOwn && (
-              <>
-                {item.status === 'sent' && <MaterialIcons name="done" size={12} color="#6b7280" />}
-                {item.status === 'delivered' && <MaterialIcons name="done-all" size={12} color="#6b7280" />}
-                {item.status === 'read' && <MaterialIcons name="done-all" size={12} color="#3b82f6" />}
-              </>
+              <MessageStatus 
+                status={item.status}
+                timestamp={item.createdAt}
+                isOwn={true}
+              />
             )}
           </View>
+
+          {/* Read Receipts */}
+          {isOwn && item.readBy && item.readBy.length > 0 && (
+            <ReadReceipts readBy={item.readBy} />
+          )}
 
           {(canEdit || canDelete) && (
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 4, paddingHorizontal: 12, justifyContent: isOwn ? 'flex-end' : 'flex-start' }}>
               {canEdit && <Pressable onPress={() => handleEditMessage(item)}><Text style={{ fontSize: 11, color: '#3b82f6' }}>Edit</Text></Pressable>}
               {canDelete && <Pressable onPress={() => handleDeleteMessage(item._id)}><Text style={{ fontSize: 11, color: '#ef4444' }}>Delete</Text></Pressable>}
               <Pressable onPress={() => setReplyingTo(item)}><Text style={{ fontSize: 11, color: '#6b7280' }}>Reply</Text></Pressable>
+              <Pressable onPress={() => { setMessageToForward(item); setShowForwardModal(true); }}><Text style={{ fontSize: 11, color: '#6b7280' }}>Forward</Text></Pressable>
               <Pressable onPress={() => setReactionPickerMessageId(reactionPickerMessageId === item._id ? null : item._id)}>
                 <Text style={{ fontSize: 11, color: '#6b7280' }}>React</Text>
               </Pressable>
@@ -747,9 +784,12 @@ export const ChatScreen = () => {
                 {selectedGroup.members.length} {selectedGroup.members.length === 1 ? 'member' : 'members'}
               </Text>
             ) : !isGroup && otherUser && (
-              <Text style={styles.headerSubtitle}>
-                {otherUser.isOnline ? 'Online' : `Last seen ${new Date(otherUser.lastSeen).toLocaleTimeString()}`}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <UserStatusBadge isOnline={otherUserOnlineStatus} />
+                <Text style={styles.headerSubtitle}>
+                  {otherUserOnlineStatus ? 'Online' : otherUserLastSeen ? `Last seen ${new Date(otherUserLastSeen).toLocaleTimeString()}` : 'Offline'}
+                </Text>
+              </View>
             )}
           </View>
         </View>
@@ -935,6 +975,77 @@ export const ChatScreen = () => {
         onCancel={handleMediaCancel}
         loading={isUploading}
       />
+
+      {showForwardModal && messageToForward && (
+        <Modal
+          visible={showForwardModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowForwardModal(false)}
+        >
+          <MessageForwardModal
+            messageId={messageToForward._id}
+            onClose={() => {
+              setShowForwardModal(false);
+              setMessageToForward(null);
+            }}
+            onForwardComplete={() => {
+              setShowForwardModal(false);
+              setMessageToForward(null);
+              Alert.alert('Success', 'Message forwarded successfully');
+            }}
+          />
+        </Modal>
+      )}
     </SafeAreaView>
   );
 };
+  );
+};
+
+      {showSettingsModal && !isGroup && selectedConversation && (
+        <Modal
+          visible={showSettingsModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowSettingsModal(false)}
+        >
+          <ConversationSettingsModal
+            conversationId={conversationId}
+            conversation={selectedConversation}
+            onClose={() => setShowSettingsModal(false)}
+            onSettingChanged={(setting, value) => {
+              if (setting === 'delete') {
+                Alert.alert('Success', 'Conversation deleted', [
+                  { text: 'OK', onPress: () => setShowSettingsModal(false) }
+                ]);
+              } else if (setting === 'archive') {
+                Alert.alert('Success', 'Conversation archived');
+                setShowSettingsModal(false);
+              }
+            }}
+          />
+        </Modal>
+      )}
+
+      {showSettingsModal && isGroup && selectedGroup && (
+        <Modal
+          visible={showSettingsModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowSettingsModal(false)}
+        >
+          <GroupSettingsModal
+            groupId={conversationId}
+            group={selectedGroup}
+            onClose={() => setShowSettingsModal(false)}
+            onSettingChanged={(setting, value) => {
+              if (setting === 'delete') {
+                Alert.alert('Success', 'Group deleted', [
+                  { text: 'OK', onPress: () => setShowSettingsModal(false) }
+                ]);
+              }
+            }}
+          />
+        </Modal>
+      )}
