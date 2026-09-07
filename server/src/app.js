@@ -11,6 +11,8 @@ import groupRoutes from './routes/groupRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import userStateRoutes from './routes/userStateRoutes.js';
+import userStatusRoutes from './routes/userStatusRoutes.js';
+import messageForwardRoutes from './routes/messageForwardRoutes.js';
 import { User } from './models/User.js';
 import { Message } from './models/Message.js';
 
@@ -79,6 +81,13 @@ app.use('/api/groups', groupRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/user-state', userStateRoutes);
+app.use('/api/user-status', userStatusRoutes);
+app.use('/api/messages', messageForwardRoutes);
+
+// Health check endpoint
+app.get('/api', (req, res) => {
+  res.json({ message: 'API is running', status: 'ok' });
+});
 
 app.use(errorHandler);
 
